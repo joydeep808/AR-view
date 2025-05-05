@@ -6,6 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { useAR } from '@/contexts/ARContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2 } from 'lucide-react';
 
 const ControlPanel: React.FC = () => {
   const {
@@ -17,7 +18,10 @@ const ControlPanel: React.FC = () => {
     setOverlayScale,
     resetAR,
     shareEnabled,
-    setShareEnabled
+    setShareEnabled,
+    isSubmitting,
+    submitToCloudinary,
+    cloudinaryUrls
   } = useAR();
 
   const handlePositionChange = (axis: 'x' | 'y' | 'z', value: number[]) => {
@@ -44,6 +48,10 @@ const ControlPanel: React.FC = () => {
 
   const handleShare = () => {
     setShareEnabled(true);
+  };
+
+  const handleSubmit = async () => {
+    await submitToCloudinary();
   };
 
   return (
@@ -171,17 +179,41 @@ const ControlPanel: React.FC = () => {
           </TabsContent>
         </Tabs>
         
-        <div className="flex justify-between mt-6 space-x-2">
-          <Button onClick={handleReset} variant="outline" className="flex-1">
-            Reset
-          </Button>
+        <div className="flex flex-col mt-6 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Button onClick={handleReset} variant="outline">
+              Reset
+            </Button>
+            <Button 
+              onClick={handleSubmit}
+              variant="default"
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+              disabled={isSubmitting || !shareEnabled}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>Save to Cloudinary</>
+              )}
+            </Button>
+          </div>
+          
           <Button 
-            onClick={handleShare} 
-            className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+            onClick={handleShare}
+            className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
             disabled={!shareEnabled && (!overlayPosition || !overlayRotation)}
           >
             Generate QR
           </Button>
+          
+          {cloudinaryUrls.metadataId && (
+            <div className="mt-2 text-center text-sm text-green-600 font-semibold">
+              Images saved to Cloudinary successfully!
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

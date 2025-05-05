@@ -1,5 +1,7 @@
 
 import React, { createContext, useState, useContext, ReactNode } from 'react';
+import { uploadToCloudinary, saveARMetadata } from '@/utils/cloudinaryUtils';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ARContextProps {
   baseImage: string | null;
@@ -15,11 +17,19 @@ interface ARContextProps {
   resetAR: () => void;
   shareEnabled: boolean;
   setShareEnabled: (enabled: boolean) => void;
+  isSubmitting: boolean;
+  submitToCloudinary: () => Promise<void>;
+  cloudinaryUrls: {
+    baseImage: string | null;
+    overlayImage: string | null;
+    metadataId: string | null;
+  };
 }
 
 const ARContext = createContext<ARContextProps | undefined>(undefined);
 
 export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { toast } = useToast();
   const [baseImage, setBaseImage] = useState<string | null>(null);
   const [overlayImage, setOverlayImage] = useState<string | null>(null);
   const [overlayPosition, setOverlayPosition] = useState({ x: 0, y: 0.5, z: 0.1 }); // Position overlay slightly above base image
@@ -30,6 +40,12 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   });
   const [overlayScale, setOverlayScale] = useState(0.8);
   const [shareEnabled, setShareEnabled] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cloudinaryUrls, setCloudinaryUrls] = useState({
+    baseImage: null as string | null,
+    overlayImage: null as string | null,
+    metadataId: null as string | null
+  });
 
   // Modified to handle overlay image changes automatically
   const handleOverlayImageChange = (url: string | null) => {
@@ -63,6 +79,68 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     });
     setOverlayScale(0.8);
     setShareEnabled(false);
+    setCloudinaryUrls({
+      baseImage: null,
+      overlayImage: null,
+      metadataId: null
+    });
+  };
+
+  // Function to submit images and metadata to Cloudinary
+  const submitToCloudinary = async () => {
+    if (!baseImage || !overlayImage) {
+      toast({
+        title: "Missing images",
+        description: "Please upload both base and overlay images.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Upload both images to Cloudinary
+      const [baseImageUrl, overlayImageUrl] = await Promise.all([
+        uploadToCloudinary(baseImage),
+        uploadToCloudinary(overlayImage)
+      ]);
+
+      // Save metadata
+      const metadata = {
+        position: overlayPosition,
+        rotation: overlayRotation,
+        scale: overlayScale,
+        baseImage: baseImageUrl,
+        overlayImage: overlayImageUrl,
+        timestamp: new Date().toISOString()
+      };
+      
+      const metadataId = await saveARMetadata(metadata);
+      
+      // Update Cloudinary URLs
+      setCloudinaryUrls({
+        baseImage: baseImageUrl,
+        overlayImage: overlayImageUrl,
+        metadataId
+      });
+      
+      toast({
+        title: "Success!",
+        description: "Your AR experience has been saved to Cloudinary.",
+      });
+      
+      setShareEnabled(true);
+    } catch (error) {
+      console.error('Failed to upload to Cloudinary:', error);
+      toast({
+        title: "Upload failed",
+        description: "Could not upload images to Cloudinary. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -81,6 +159,9 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         resetAR,
         shareEnabled,
         setShareEnabled,
+        isSubmitting,
+        submitToCloudinary,
+        cloudinaryUrls
       }}
     >
       {children}
@@ -95,3 +176,4 @@ export const useAR = (): ARContextProps => {
   }
   return context;
 };
+

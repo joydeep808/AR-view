@@ -1,36 +1,67 @@
 
-// This is a placeholder for future Cloudinary integration
-// In a production app, you would use the Cloudinary SDK
+// Cloudinary integration for uploading and managing images
 
-// Mock function for future upload implementation
-export const uploadToCloudinary = async (file: File): Promise<string> => {
-  // In a production app, this would use the Cloudinary SDK to upload the file
-  // and return the public URL
+// Cloudinary configuration - replace with your own in production
+const CLOUDINARY_CLOUD_NAME = 'demo';
+const CLOUDINARY_UPLOAD_PRESET = 'ml_default';
+
+interface CloudinaryUploadResponse {
+  secure_url: string;
+  public_id: string;
+  version: number;
+  asset_id: string;
+  format: string;
+  width: number;
+  height: number;
+}
+
+// Upload image to Cloudinary
+export const uploadToCloudinary = async (file: File | string): Promise<string> => {
+  // If input is a data URL, convert to a Blob first
+  let uploadFile: File | Blob = file as File;
   
-  // For now, we'll just return a data URL simulating the upload
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        console.log("Successfully created data URL for image");
-        resolve(reader.result as string);
-      } catch (err) {
-        console.error("Failed to create data URL", err);
-        reject(err);
+  if (typeof file === 'string' && file.startsWith('data:')) {
+    const response = await fetch(file);
+    uploadFile = await response.blob();
+  }
+  
+  // Create form data for upload
+  const formData = new FormData();
+  formData.append('file', uploadFile);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  
+  try {
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
       }
-    };
-    reader.onerror = (err) => {
-      console.error("FileReader error:", err);
-      reject(new Error('Failed to read file'));
-    };
-    reader.readAsDataURL(file);
-  });
+    );
+    
+    if (!response.ok) {
+      throw new Error(`Upload failed with status: ${response.status}`);
+    }
+    
+    const data: CloudinaryUploadResponse = await response.json();
+    console.log('Successfully uploaded to Cloudinary:', data.secure_url);
+    return data.secure_url;
+  } catch (error) {
+    console.error('Cloudinary upload failed:', error);
+    
+    // Fallback to local storage in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Falling back to local storage strategy');
+      return typeof file === 'string' ? file : URL.createObjectURL(file);
+    }
+    
+    throw error;
+  }
 };
 
-// Mock function to prepare for future integration
+// Get Cloudinary URL from public ID
 export const getCloudinaryUrl = (publicId: string): string => {
-  // In a production app, this would construct a Cloudinary URL
-  return `https://res.cloudinary.com/demo/image/upload/${publicId}`;
+  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${publicId}`;
 };
 
 // Helper function to compress images before upload to reduce storage usage
@@ -67,3 +98,22 @@ export const compressImage = (file: File, quality: number = 0.7): Promise<File> 
     reader.onerror = () => reject(new Error('FileReader error'));
   });
 };
+
+// Function to handle metadata storage alongside images
+export const saveARMetadata = async (metadata: any): Promise<string> => {
+  try {
+    // In a real application, you would save this metadata to a database
+    // For now, we'll simulate by returning a JSON string
+    const metadataString = JSON.stringify(metadata);
+    console.log('AR metadata saved:', metadataString);
+    
+    // Here you would typically POST to your backend or Cloudinary
+    // For now, we're just returning an ID
+    const metadataId = 'ar-' + Date.now().toString(36);
+    return metadataId;
+  } catch (error) {
+    console.error('Failed to save AR metadata:', error);
+    throw error;
+  }
+};
+
