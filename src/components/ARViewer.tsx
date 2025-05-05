@@ -1,7 +1,7 @@
 
 import React, { useRef, useState, useEffect, Suspense } from 'react';
 import { Canvas, useLoader, useThree } from '@react-three/fiber';
-import { TextureLoader } from 'three';
+import * as THREE from 'three';
 import { OrbitControls, PerspectiveCamera, Html } from '@react-three/drei';
 import { useAR } from '@/contexts/ARContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,8 +37,8 @@ const Scene: React.FC = () => {
   const { baseImage, overlayImage, overlayPosition, overlayRotation, overlayScale } = useAR();
   
   // Load textures
-  const baseTexture = useLoader(TextureLoader, baseImage || '/placeholder.svg');
-  const overlayTexture = overlayImage ? useLoader(TextureLoader, overlayImage) : null;
+  const baseTexture = useLoader(THREE.TextureLoader, baseImage || '/placeholder.svg');
+  const overlayTexture = overlayImage ? useLoader(THREE.TextureLoader, overlayImage) : null;
 
   return (
     <>
@@ -74,7 +74,7 @@ const LoadingFallback: React.FC = () => {
 };
 
 const ARViewer: React.FC = () => {
-  const { baseImage } = useAR();
+  const { baseImage, overlayImage, resetAR, setOverlayImage } = useAR();
   
   if (!baseImage) {
     return (
@@ -85,7 +85,19 @@ const ARViewer: React.FC = () => {
   }
 
   return (
-    <div className="h-[400px] w-full rounded-lg overflow-hidden shadow-xl">
+    <div className="h-[400px] w-full rounded-lg overflow-hidden shadow-xl relative">
+      {overlayImage && (
+        <button 
+          onClick={() => setOverlayImage(null)} 
+          className="absolute top-2 right-2 z-10 bg-white/80 backdrop-blur-sm p-1 rounded-full shadow-md hover:bg-white transition-colors"
+          aria-label="Remove overlay image"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+          </svg>
+        </button>
+      )}
       <Canvas>
         <PerspectiveCamera makeDefault position={[0, 0, 2]} />
         <OrbitControls 

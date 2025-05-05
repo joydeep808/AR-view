@@ -46,6 +46,9 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
       });
       setOverlayScale(0.8);
       setShareEnabled(true);
+    } else if (url === null) {
+      // When overlay is removed (cross button clicked)
+      setShareEnabled(false);
     }
   };
 
