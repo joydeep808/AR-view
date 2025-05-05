@@ -1,7 +1,7 @@
 
 import React, { useRef, useState, useEffect, Suspense } from 'react';
 import { Canvas, useLoader, useThree } from '@react-three/fiber';
-import { TextureLoader } from 'three/src/loaders/TextureLoader';
+import { TextureLoader } from 'three';
 import { OrbitControls, PerspectiveCamera, Html } from '@react-three/drei';
 import { useAR } from '@/contexts/ARContext';
 import { Skeleton } from '@/components/ui/skeleton';
