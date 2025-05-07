@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { ARProvider, useAR } from '@/contexts/ARContext';
 import ImageUploader from '@/components/ImageUploader';
 import ARViewer from '@/components/ARViewer';
@@ -8,7 +8,6 @@ import QRCodeGenerator from '@/components/QRCodeGenerator';
 import { saveImages, loadImages } from '@/services/imageService';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ARApp = () => {
   const { 
@@ -100,10 +99,6 @@ const ARApp = () => {
           </div>
         </>
       )}
-
-      <footer className="mt-12 text-center text-sm text-muted-foreground">
-        <p>3D AR Viewer - Interact with augmented reality business cards and images</p>
-      </footer>
     </div>
   );
 };

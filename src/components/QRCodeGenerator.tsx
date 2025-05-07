@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
@@ -78,7 +77,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
     <Card className="w-full max-w-md mx-auto bg-white/90 backdrop-blur-sm">
       <CardHeader>
         <CardTitle className="text-center">
-          {cloudinaryUrls.metadataId ? 'Share Your Cloudinary AR View' : 'Share Your AR View'}
+          Share Your AR View
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center space-y-4">
@@ -95,11 +94,6 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
           <p className="text-center text-sm text-muted-foreground break-all">
             {shareUrl}
           </p>
-          {cloudinaryUrls.metadataId && (
-            <p className="text-center text-sm text-green-600">
-              Using Cloudinary URLs for better sharing performance
-            </p>
-          )}
         </div>
       </CardContent>
     </Card>
