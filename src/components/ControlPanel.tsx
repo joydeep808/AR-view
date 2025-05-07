@@ -1,13 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { useAR } from '@/contexts/ARContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
-import { RotateCw } from 'lucide-react';
+import { Loader2, RotateCw } from 'lucide-react';
 
 const ControlPanel: React.FC = () => {
   const {
@@ -32,6 +31,19 @@ const ControlPanel: React.FC = () => {
     y: overlayRotation.y * (180 / Math.PI),
     z: overlayRotation.z * (180 / Math.PI)
   });
+  
+  // Update local state when context values change
+  useEffect(() => {
+    setLocalPosition(overlayPosition);
+  }, [overlayPosition]);
+  
+  useEffect(() => {
+    setLocalRotation({
+      x: overlayRotation.x * (180 / Math.PI),
+      y: overlayRotation.y * (180 / Math.PI),
+      z: overlayRotation.z * (180 / Math.PI)
+    });
+  }, [overlayRotation]);
 
   const handlePositionChange = (axis: 'x' | 'y' | 'z', value: number[]) => {
     const newPosition = {
@@ -39,7 +51,11 @@ const ControlPanel: React.FC = () => {
       [axis]: value[0],
     };
     setLocalPosition(newPosition);
-    setOverlayPosition(newPosition);
+    
+    // Use setTimeout to avoid too many updates in rapid succession
+    setTimeout(() => {
+      setOverlayPosition(newPosition);
+    }, 10);
   };
 
   const handleRotationChange = (axis: 'x' | 'y' | 'z', value: number[]) => {
@@ -55,7 +71,11 @@ const ControlPanel: React.FC = () => {
       ...overlayRotation,
       [axis]: value[0] * (Math.PI / 180), // Convert degrees to radians
     };
-    setOverlayRotation(newRotation);
+    
+    // Use setTimeout to avoid too many updates in rapid succession
+    setTimeout(() => {
+      setOverlayRotation(newRotation);
+    }, 10);
   };
 
   const handleScaleChange = (value: number[]) => {

@@ -47,6 +47,18 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     metadataId: null as string | null
   });
 
+  // Handle direct position updates to ensure state immutability
+  const handlePositionChange = (position: { x: number; y: number; z: number }) => {
+    // Create a new object to ensure React detects the change
+    setOverlayPosition({...position});
+  };
+
+  // Handle direct rotation updates to ensure state immutability
+  const handleRotationChange = (rotation: { x: number; y: number; z: number }) => {
+    // Create a new object to ensure React detects the change
+    setOverlayRotation({...rotation});
+  };
+
   // Modified to handle overlay image changes automatically
   const handleOverlayImageChange = (url: string | null) => {
     setOverlayImage(url);
@@ -54,8 +66,8 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     // Automatically set position and rotation when overlay is added
     if (url) {
       // Position slightly above base image at 90 degrees
-      setOverlayPosition({ x: 0, y: 0.5, z: 0.1 });
-      setOverlayRotation({ 
+      handlePositionChange({ x: 0, y: 0.5, z: 0.1 });
+      handleRotationChange({ 
         x: Math.PI / 2, // 90 degrees in radians
         y: 0, 
         z: 0 
@@ -71,8 +83,8 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const resetAR = () => {
     setBaseImage(null);
     setOverlayImage(null);
-    setOverlayPosition({ x: 0, y: 0.5, z: 0.1 });
-    setOverlayRotation({ 
+    handlePositionChange({ x: 0, y: 0.5, z: 0.1 });
+    handleRotationChange({ 
       x: Math.PI / 2, 
       y: 0, 
       z: 0 
@@ -153,8 +165,8 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         overlayScale,
         setBaseImage,
         setOverlayImage: handleOverlayImageChange,
-        setOverlayPosition,
-        setOverlayRotation,
+        setOverlayPosition: handlePositionChange,
+        setOverlayRotation: handleRotationChange,
         setOverlayScale,
         resetAR,
         shareEnabled,
