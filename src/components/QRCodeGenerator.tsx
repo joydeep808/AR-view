@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
@@ -26,11 +27,13 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
       const baseImageUrl = cloudinaryUrls.baseImage || arData.baseImage;
       const overlayImageUrl = cloudinaryUrls.overlayImage || arData.overlayImage;
       
+      // Determine the base URL based on the environment
+      const baseUrl = window.location.origin;
+      
       // In a real implementation, we would generate a unique URL with the AR data
-      // Here we're simulating this by creating a URL with query parameters or using metadata ID
       if (cloudinaryUrls.metadataId) {
         // If we have a metadata ID, use it for a cleaner URL
-        setShareUrl(`https://example.com/ar-view/${cloudinaryUrls.metadataId}`);
+        setShareUrl(`${baseUrl}/ar-view/${cloudinaryUrls.metadataId}`);
       } else {
         // Otherwise use query parameters with truncated image URLs
         const queryParams = new URLSearchParams({
@@ -45,7 +48,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
           scale: arData.scale.toString()
         });
         
-        setShareUrl(`https://example.com/ar-view?${queryParams.toString()}`);
+        setShareUrl(`${baseUrl}/ar-view?${queryParams.toString()}`);
       }
     }
   }, [arData, cloudinaryUrls]);
@@ -89,6 +92,9 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
           >
             Copy Link
           </Button>
+          <p className="text-center text-sm text-muted-foreground break-all">
+            {shareUrl}
+          </p>
           {cloudinaryUrls.metadataId && (
             <p className="text-center text-sm text-green-600">
               Using Cloudinary URLs for better sharing performance

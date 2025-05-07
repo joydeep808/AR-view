@@ -118,13 +118,13 @@ const ControlPanel: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="x-rotation">X Rotation</Label>
-                <span className="text-sm text-muted-foreground">{overlayRotation.x.toFixed(2)}</span>
+                <span className="text-sm text-muted-foreground">{(overlayRotation.x * 180 / Math.PI).toFixed(1)}°</span>
               </div>
               <Slider
                 id="x-rotation"
                 min={-Math.PI}
                 max={Math.PI}
-                step={0.1}
+                step={0.017453} // Approximately 1 degree in radians
                 value={[overlayRotation.x]}
                 onValueChange={(value) => handleRotationChange('x', value)}
               />
@@ -133,13 +133,13 @@ const ControlPanel: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="y-rotation">Y Rotation</Label>
-                <span className="text-sm text-muted-foreground">{overlayRotation.y.toFixed(2)}</span>
+                <span className="text-sm text-muted-foreground">{(overlayRotation.y * 180 / Math.PI).toFixed(1)}°</span>
               </div>
               <Slider
                 id="y-rotation"
                 min={-Math.PI}
                 max={Math.PI}
-                step={0.1}
+                step={0.017453} // Approximately 1 degree in radians
                 value={[overlayRotation.y]}
                 onValueChange={(value) => handleRotationChange('y', value)}
               />
@@ -148,13 +148,13 @@ const ControlPanel: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="z-rotation">Z Rotation</Label>
-                <span className="text-sm text-muted-foreground">{overlayRotation.z.toFixed(2)}</span>
+                <span className="text-sm text-muted-foreground">{(overlayRotation.z * 180 / Math.PI).toFixed(1)}°</span>
               </div>
               <Slider
                 id="z-rotation"
                 min={-Math.PI}
                 max={Math.PI}
-                step={0.1}
+                step={0.017453} // Approximately 1 degree in radians
                 value={[overlayRotation.z]}
                 onValueChange={(value) => handleRotationChange('z', value)}
               />
