@@ -40,6 +40,19 @@ const Scene: React.FC = () => {
   const baseTexture = useLoader(THREE.TextureLoader, baseImage || '/placeholder.svg');
   const overlayTexture = overlayImage ? useLoader(THREE.TextureLoader, overlayImage) : null;
 
+  // Convert object position and rotation to arrays for Three.js
+  const positionArray: [number, number, number] = [
+    overlayPosition.x,
+    overlayPosition.y,
+    overlayPosition.z
+  ];
+  
+  const rotationArray: [number, number, number] = [
+    overlayRotation.x,
+    overlayRotation.y,
+    overlayRotation.z
+  ];
+
   return (
     <>
       {/* Base image */}
@@ -49,8 +62,8 @@ const Scene: React.FC = () => {
       {overlayTexture && (
         <Plane 
           texture={overlayTexture} 
-          position={[overlayPosition.x, overlayPosition.y, overlayPosition.z]} 
-          rotation={[overlayRotation.x, overlayRotation.y, overlayRotation.z]}
+          position={positionArray}
+          rotation={rotationArray}
           scale={overlayScale}
         />
       )}

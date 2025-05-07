@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAR } from '@/contexts/ARContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
+import { RotateCw } from 'lucide-react';
 
 const ControlPanel: React.FC = () => {
   const {
@@ -24,18 +25,37 @@ const ControlPanel: React.FC = () => {
     cloudinaryUrls
   } = useAR();
 
+  // Use local state to track values before sending to context
+  const [localPosition, setLocalPosition] = useState(overlayPosition);
+  const [localRotation, setLocalRotation] = useState({
+    x: overlayRotation.x * (180 / Math.PI), // Convert to degrees for UI
+    y: overlayRotation.y * (180 / Math.PI),
+    z: overlayRotation.z * (180 / Math.PI)
+  });
+
   const handlePositionChange = (axis: 'x' | 'y' | 'z', value: number[]) => {
-    setOverlayPosition({
-      ...overlayPosition,
+    const newPosition = {
+      ...localPosition,
       [axis]: value[0],
-    });
+    };
+    setLocalPosition(newPosition);
+    setOverlayPosition(newPosition);
   };
 
   const handleRotationChange = (axis: 'x' | 'y' | 'z', value: number[]) => {
-    setOverlayRotation({
-      ...overlayRotation,
+    // Update local rotation in degrees
+    const newLocalRotation = {
+      ...localRotation,
       [axis]: value[0],
-    });
+    };
+    setLocalRotation(newLocalRotation);
+    
+    // Convert to radians for the actual overlay
+    const newRotation = {
+      ...overlayRotation,
+      [axis]: value[0] * (Math.PI / 180), // Convert degrees to radians
+    };
+    setOverlayRotation(newRotation);
   };
 
   const handleScaleChange = (value: number[]) => {
@@ -44,6 +64,9 @@ const ControlPanel: React.FC = () => {
 
   const handleReset = () => {
     resetAR();
+    // Reset local state too
+    setLocalPosition({ x: 0, y: 0.5, z: 0.1 });
+    setLocalRotation({ x: 90, y: 0, z: 0 }); // 90 degrees = Math.PI/2 radians
   };
 
   const handleShare = () => {
@@ -71,14 +94,14 @@ const ControlPanel: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="x-position">X Position</Label>
-                <span className="text-sm text-muted-foreground">{overlayPosition.x.toFixed(2)}</span>
+                <span className="text-sm text-muted-foreground">{localPosition.x.toFixed(2)}</span>
               </div>
               <Slider
                 id="x-position"
                 min={-5}
                 max={5}
                 step={0.1}
-                value={[overlayPosition.x]}
+                value={[localPosition.x]}
                 onValueChange={(value) => handlePositionChange('x', value)}
               />
             </div>
@@ -86,14 +109,14 @@ const ControlPanel: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="y-position">Y Position</Label>
-                <span className="text-sm text-muted-foreground">{overlayPosition.y.toFixed(2)}</span>
+                <span className="text-sm text-muted-foreground">{localPosition.y.toFixed(2)}</span>
               </div>
               <Slider
                 id="y-position"
                 min={-5}
                 max={5}
                 step={0.1}
-                value={[overlayPosition.y]}
+                value={[localPosition.y]}
                 onValueChange={(value) => handlePositionChange('y', value)}
               />
             </div>
@@ -101,14 +124,14 @@ const ControlPanel: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="z-position">Z Position</Label>
-                <span className="text-sm text-muted-foreground">{overlayPosition.z.toFixed(2)}</span>
+                <span className="text-sm text-muted-foreground">{localPosition.z.toFixed(2)}</span>
               </div>
               <Slider
                 id="z-position"
                 min={-5}
                 max={5}
                 step={0.1}
-                value={[overlayPosition.z]}
+                value={[localPosition.z]}
                 onValueChange={(value) => handlePositionChange('z', value)}
               />
             </div>
@@ -118,14 +141,14 @@ const ControlPanel: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="x-rotation">X Rotation</Label>
-                <span className="text-sm text-muted-foreground">{(overlayRotation.x * 180 / Math.PI).toFixed(1)}°</span>
+                <span className="text-sm text-muted-foreground">{localRotation.x.toFixed(0)}°</span>
               </div>
               <Slider
                 id="x-rotation"
-                min={-Math.PI}
-                max={Math.PI}
-                step={0.017453} // Approximately 1 degree in radians
-                value={[overlayRotation.x]}
+                min={-180}
+                max={180}
+                step={1} // 1 degree increments
+                value={[localRotation.x]}
                 onValueChange={(value) => handleRotationChange('x', value)}
               />
             </div>
@@ -133,14 +156,14 @@ const ControlPanel: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="y-rotation">Y Rotation</Label>
-                <span className="text-sm text-muted-foreground">{(overlayRotation.y * 180 / Math.PI).toFixed(1)}°</span>
+                <span className="text-sm text-muted-foreground">{localRotation.y.toFixed(0)}°</span>
               </div>
               <Slider
                 id="y-rotation"
-                min={-Math.PI}
-                max={Math.PI}
-                step={0.017453} // Approximately 1 degree in radians
-                value={[overlayRotation.y]}
+                min={-180}
+                max={180}
+                step={1} // 1 degree increments
+                value={[localRotation.y]}
                 onValueChange={(value) => handleRotationChange('y', value)}
               />
             </div>
@@ -148,14 +171,14 @@ const ControlPanel: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="z-rotation">Z Rotation</Label>
-                <span className="text-sm text-muted-foreground">{(overlayRotation.z * 180 / Math.PI).toFixed(1)}°</span>
+                <span className="text-sm text-muted-foreground">{localRotation.z.toFixed(0)}°</span>
               </div>
               <Slider
                 id="z-rotation"
-                min={-Math.PI}
-                max={Math.PI}
-                step={0.017453} // Approximately 1 degree in radians
-                value={[overlayRotation.z]}
+                min={-180}
+                max={180}
+                step={1} // 1 degree increments
+                value={[localRotation.z]}
                 onValueChange={(value) => handleRotationChange('z', value)}
               />
             </div>
@@ -208,12 +231,6 @@ const ControlPanel: React.FC = () => {
           >
             Generate QR
           </Button>
-          
-          {cloudinaryUrls.metadataId && (
-            <div className="mt-2 text-center text-sm text-green-600 font-semibold">
-              Images saved to Cloudinary successfully!
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>

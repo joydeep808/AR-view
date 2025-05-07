@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { uploadToCloudinary, saveARMetadata } from '@/utils/cloudinaryUtils';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -32,9 +32,9 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { toast } = useToast();
   const [baseImage, setBaseImage] = useState<string | null>(null);
   const [overlayImage, setOverlayImage] = useState<string | null>(null);
-  const [overlayPosition, setOverlayPosition] = useState({ x: 0, y: 0.5, z: 0.1 }); // Position overlay slightly above base image
+  const [overlayPosition, setOverlayPosition] = useState({ x: 0, y: 0.5, z: 0.1 });
   const [overlayRotation, setOverlayRotation] = useState({ 
-    x: Math.PI / 2, // 90 degrees in radians for X-axis 
+    x: Math.PI / 2, // 90 degrees in radians
     y: 0, 
     z: 0 
   });
@@ -176,4 +176,3 @@ export const useAR = (): ARContextProps => {
   }
   return context;
 };
-
