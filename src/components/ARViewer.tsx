@@ -93,7 +93,7 @@ const LoadingFallback: React.FC = () => {
 };
 
 const ARViewer: React.FC = () => {
-  const { baseImage, overlayImage, resetAR, setOverlayImage } = useAR();
+  const { baseImage, overlayImage, resetAR, setOverlayImage, overlayPosition, overlayRotation, overlayScale } = useAR();
   
   if (!baseImage) {
     return (
