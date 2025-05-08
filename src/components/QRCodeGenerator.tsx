@@ -34,10 +34,10 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
         // If we have a metadata ID, use it for a cleaner URL
         setShareUrl(`${baseUrl}/ar-view/${cloudinaryUrls.metadataId}`);
       } else {
-        // Otherwise use query parameters with truncated image URLs
+        // Otherwise use query parameters
         const queryParams = new URLSearchParams({
-          baseImage: encodeURIComponent(baseImageUrl.substring(0, 50) + '...'),
-          overlayImage: encodeURIComponent(overlayImageUrl.substring(0, 50) + '...'),
+          baseImage: baseImageUrl,
+          overlayImage: overlayImageUrl || '',
           posX: arData.position.x.toString(),
           posY: arData.position.y.toString(),
           posZ: arData.position.z.toString(),
