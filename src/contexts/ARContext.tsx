@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { uploadToCloudinary, saveARMetadata } from '@/utils/cloudinaryUtils';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -47,17 +47,30 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     metadataId: null as string | null
   });
 
-  // Handle direct position updates to ensure state immutability
-  const handlePositionChange = (position: { x: number; y: number; z: number }) => {
-    // Create a new object to ensure React detects the change
-    setOverlayPosition({...position});
-  };
+  // Handle position updates with a useCallback to ensure stable reference
+  const handlePositionChange = useCallback((position: { x: number; y: number; z: number }) => {
+    setOverlayPosition(prevPosition => {
+      if (JSON.stringify(prevPosition) === JSON.stringify(position)) {
+        return prevPosition; // No change needed
+      }
+      return {...position};
+    });
+  }, []);
 
-  // Handle direct rotation updates to ensure state immutability
-  const handleRotationChange = (rotation: { x: number; y: number; z: number }) => {
-    // Create a new object to ensure React detects the change
-    setOverlayRotation({...rotation});
-  };
+  // Handle rotation updates with useCallback for better performance
+  const handleRotationChange = useCallback((rotation: { x: number; y: number; z: number }) => {
+    setOverlayRotation(prevRotation => {
+      if (JSON.stringify(prevRotation) === JSON.stringify(rotation)) {
+        return prevRotation; // No change needed
+      }
+      return {...rotation};
+    });
+  }, []);
+
+  // Handle scale changes with debounce to improve performance
+  const handleScaleChange = useCallback((scale: number) => {
+    setOverlayScale(scale);
+  }, []);
 
   // Modified to handle overlay image changes without resetting position and rotation
   const handleOverlayImageChange = (url: string | null) => {
@@ -167,7 +180,7 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         setOverlayImage: handleOverlayImageChange,
         setOverlayPosition: handlePositionChange,
         setOverlayRotation: handleRotationChange,
-        setOverlayScale,
+        setOverlayScale: handleScaleChange,
         resetAR,
         shareEnabled,
         setShareEnabled,

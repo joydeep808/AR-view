@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { OrbitControls, PerspectiveCamera, Html } from '@react-three/drei';
 import { useAR } from '@/contexts/ARContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PlaneProps {
   texture: THREE.Texture;
@@ -78,6 +79,31 @@ const Scene: React.FC = () => {
   );
 };
 
+// Custom OrbitControls wrapper to handle device-specific settings
+const CustomOrbitControls: React.FC = () => {
+  const isMobile = useIsMobile();
+  
+  return (
+    <OrbitControls 
+      enableZoom={true}
+      enablePan={true}
+      enableRotate={true}
+      zoomSpeed={0.5}
+      // Make controls more responsive on non-mobile devices
+      rotateSpeed={isMobile ? 1.0 : 1.5}
+      mouseButtons={{
+        LEFT: THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.PAN
+      }}
+      touches={{
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN
+      }}
+    />
+  );
+};
+
 const LoadingFallback: React.FC = () => {
   return (
     <Html center>
@@ -116,12 +142,7 @@ const ARViewer: React.FC = () => {
       )}
       <Canvas>
         <PerspectiveCamera makeDefault position={[0, 0, 2]} />
-        <OrbitControls 
-          enableZoom={true}
-          enablePan={true}
-          enableRotate={true}
-          zoomSpeed={0.5}
-        />
+        <CustomOrbitControls />
         <Suspense fallback={<LoadingFallback />}>
           <Scene />
         </Suspense>
