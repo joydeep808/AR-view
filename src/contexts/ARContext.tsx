@@ -59,12 +59,12 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     setOverlayRotation({...rotation});
   };
 
-  // Modified to handle overlay image changes automatically
+  // Modified to handle overlay image changes without resetting position and rotation
   const handleOverlayImageChange = (url: string | null) => {
     setOverlayImage(url);
     
-    // Automatically set position and rotation when overlay is added
-    if (url) {
+    // Only set default position and rotation when initially adding an overlay
+    if (url && !overlayImage) {
       // Position slightly above base image at 90 degrees
       handlePositionChange({ x: 0, y: 0.5, z: 0.1 });
       handleRotationChange({ 

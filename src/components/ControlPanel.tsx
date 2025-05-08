@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -25,16 +24,17 @@ const ControlPanel: React.FC = () => {
   } = useAR();
 
   // Use local state to track values before sending to context
-  const [localPosition, setLocalPosition] = useState(overlayPosition);
+  const [localPosition, setLocalPosition] = useState({...overlayPosition});
   const [localRotation, setLocalRotation] = useState({
     x: overlayRotation.x * (180 / Math.PI), // Convert to degrees for UI
     y: overlayRotation.y * (180 / Math.PI),
     z: overlayRotation.z * (180 / Math.PI)
   });
+  const [localScale, setLocalScale] = useState(overlayScale);
   
   // Update local state when context values change
   useEffect(() => {
-    setLocalPosition(overlayPosition);
+    setLocalPosition({...overlayPosition});
   }, [overlayPosition]);
   
   useEffect(() => {
@@ -44,18 +44,21 @@ const ControlPanel: React.FC = () => {
       z: overlayRotation.z * (180 / Math.PI)
     });
   }, [overlayRotation]);
+  
+  useEffect(() => {
+    setLocalScale(overlayScale);
+  }, [overlayScale]);
 
   const handlePositionChange = (axis: 'x' | 'y' | 'z', value: number[]) => {
+    // Update local state first
     const newPosition = {
       ...localPosition,
       [axis]: value[0],
     };
     setLocalPosition(newPosition);
     
-    // Use setTimeout to avoid too many updates in rapid succession
-    setTimeout(() => {
-      setOverlayPosition(newPosition);
-    }, 10);
+    // Directly update the context state without setTimeout
+    setOverlayPosition({...newPosition});
   };
 
   const handleRotationChange = (axis: 'x' | 'y' | 'z', value: number[]) => {
@@ -72,13 +75,12 @@ const ControlPanel: React.FC = () => {
       [axis]: value[0] * (Math.PI / 180), // Convert degrees to radians
     };
     
-    // Use setTimeout to avoid too many updates in rapid succession
-    setTimeout(() => {
-      setOverlayRotation(newRotation);
-    }, 10);
+    // Directly update context state
+    setOverlayRotation({...newRotation});
   };
 
   const handleScaleChange = (value: number[]) => {
+    setLocalScale(value[0]);
     setOverlayScale(value[0]);
   };
 
@@ -87,6 +89,7 @@ const ControlPanel: React.FC = () => {
     // Reset local state too
     setLocalPosition({ x: 0, y: 0.5, z: 0.1 });
     setLocalRotation({ x: 90, y: 0, z: 0 }); // 90 degrees = Math.PI/2 radians
+    setLocalScale(0.8);
   };
 
   const handleShare = () => {
@@ -208,14 +211,14 @@ const ControlPanel: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="scale">Scale</Label>
-                <span className="text-sm text-muted-foreground">{overlayScale.toFixed(2)}</span>
+                <span className="text-sm text-muted-foreground">{localScale.toFixed(2)}</span>
               </div>
               <Slider
                 id="scale"
                 min={0.1}
                 max={3}
                 step={0.1}
-                value={[overlayScale]}
+                value={[localScale]}
                 onValueChange={handleScaleChange}
               />
             </div>

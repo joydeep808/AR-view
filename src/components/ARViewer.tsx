@@ -53,11 +53,8 @@ const Scene: React.FC = () => {
     overlayRotation.z
   ];
 
-  // Force re-render when position or rotation changes
-  const [, forceUpdate] = React.useState({});
-  React.useEffect(() => {
-    forceUpdate({});
-  }, [overlayPosition, overlayRotation, overlayScale]);
+  // Remove the force re-render mechanism as it might be causing issues
+  // Just rely on React's natural re-rendering when props change
 
   return (
     <>
@@ -117,7 +114,7 @@ const ARViewer: React.FC = () => {
           </svg>
         </button>
       )}
-      <Canvas key={`canvas-${JSON.stringify(overlayPosition)}-${JSON.stringify(overlayRotation)}-${overlayScale}`}>
+      <Canvas>
         <PerspectiveCamera makeDefault position={[0, 0, 2]} />
         <OrbitControls 
           enableZoom={true}
