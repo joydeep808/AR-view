@@ -1,9 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAR } from '@/contexts/ARContext';
+import { Link } from 'react-router-dom';
 
 interface QRCodeGeneratorProps {
   arData: {
@@ -71,6 +73,11 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
     );
   };
 
+  const testLink = () => {
+    // Open the link in a new tab
+    window.open(shareUrl, '_blank');
+  };
+
   if (!shareUrl) return null;
 
   return (
@@ -85,15 +92,28 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
           <QRCodeSVG value={shareUrl} size={200} />
         </div>
         <div className="w-full space-y-2">
-          <Button 
-            onClick={copyToClipboard}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-          >
-            Copy Link
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button 
+              onClick={copyToClipboard}
+              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+            >
+              Copy Link
+            </Button>
+            <Button 
+              onClick={testLink}
+              variant="outline"
+            >
+              Test Link
+            </Button>
+          </div>
           <p className="text-center text-sm text-muted-foreground break-all">
             {shareUrl}
           </p>
+          <div className="text-center mt-2">
+            <Link to={shareUrl.replace(window.location.origin, '')} className="text-blue-500 hover:underline text-sm">
+              View in this browser
+            </Link>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -1,9 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { ARProvider } from '@/contexts/ARContext';
 import ARViewer from '@/components/ARViewer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/components/ui/use-toast';
 
 const ARViewPage = () => {
   const { id } = useParams();
@@ -64,11 +66,24 @@ const ARViewPage = () => {
             scale
           });
           setIsLoading(false);
+          
+          // Show success toast when AR data loads successfully
+          toast({
+            title: "AR Experience Loaded",
+            description: "Your AR experience has been loaded successfully.",
+          });
         }
       } catch (err) {
         console.error('Error loading AR data:', err);
         setError('Failed to load AR experience. Please check the URL and try again.');
         setIsLoading(false);
+        
+        // Show error toast
+        toast({
+          title: "Error Loading AR Experience",
+          description: "Could not load the AR experience. Please try again.",
+          variant: "destructive",
+        });
       }
     };
 
