@@ -40,12 +40,24 @@ const ARViewPage = () => {
               scale: 1
             });
             setIsLoading(false);
+            
+            toast({
+              title: "AR Experience Loaded",
+              description: "Demo AR experience has been loaded successfully.",
+            });
           }, 1000);
         }
         // Otherwise try to use search params
         else {
-          const baseImage = searchParams.get('baseImage');
-          const overlayImage = searchParams.get('overlayImage');
+          // Get and decode parameters
+          const baseImageParam = searchParams.get('baseImage');
+          const overlayImageParam = searchParams.get('overlayImage');
+          
+          // Handle URL-encoded parameters
+          const baseImage = baseImageParam ? decodeURIComponent(baseImageParam) : null;
+          const overlayImage = overlayImageParam ? decodeURIComponent(overlayImageParam) : null;
+          
+          // Parse position, rotation and scale parameters
           const posX = parseFloat(searchParams.get('posX') || '0');
           const posY = parseFloat(searchParams.get('posY') || '0');
           const posZ = parseFloat(searchParams.get('posZ') || '0');
@@ -57,6 +69,10 @@ const ARViewPage = () => {
           if (!baseImage) {
             throw new Error('No base image provided');
           }
+
+          console.log("Loading AR data from query params:", {
+            baseImage, overlayImage, position: { x: posX, y: posY, z: posZ }
+          });
 
           setArData({
             baseImage,
@@ -78,7 +94,6 @@ const ARViewPage = () => {
         setError('Failed to load AR experience. Please check the URL and try again.');
         setIsLoading(false);
         
-        // Show error toast
         toast({
           title: "Error Loading AR Experience",
           description: "Could not load the AR experience. Please try again.",
@@ -122,6 +137,15 @@ const ARViewPage = () => {
       </div>
     );
   }
+
+  // Initial data for ARProvider - this will be properly consumed by ARViewer
+  const initialARData = {
+    initialBaseImage: arData.baseImage,
+    initialOverlayImage: arData.overlayImage,
+    initialPosition: arData.position,
+    initialRotation: arData.rotation,
+    initialScale: arData.scale
+  };
 
   return (
     <ARProvider>

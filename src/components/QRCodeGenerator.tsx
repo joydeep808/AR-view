@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
@@ -31,23 +30,26 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
       // Determine the base URL based on the environment
       const baseUrl = window.location.origin;
       
+      // Ensure all URLs are properly encoded
+      const encodedBaseImage = encodeURIComponent(baseImageUrl);
+      const encodedOverlayImage = overlayImageUrl ? encodeURIComponent(overlayImageUrl) : '';
+      
       // In a real implementation, we would generate a unique URL with the AR data
       if (cloudinaryUrls.metadataId) {
         // If we have a metadata ID, use it for a cleaner URL
         setShareUrl(`${baseUrl}/ar-view/${cloudinaryUrls.metadataId}`);
       } else {
-        // Otherwise use query parameters
-        const queryParams = new URLSearchParams({
-          baseImage: baseImageUrl,
-          overlayImage: overlayImageUrl || '',
-          posX: arData.position.x.toString(),
-          posY: arData.position.y.toString(),
-          posZ: arData.position.z.toString(),
-          rotX: arData.rotation.x.toString(),
-          rotY: arData.rotation.y.toString(),
-          rotZ: arData.rotation.z.toString(),
-          scale: arData.scale.toString()
-        });
+        // Otherwise use query parameters with proper encoding
+        const queryParams = new URLSearchParams();
+        queryParams.append('baseImage', encodedBaseImage);
+        if (encodedOverlayImage) queryParams.append('overlayImage', encodedOverlayImage);
+        queryParams.append('posX', arData.position.x.toString());
+        queryParams.append('posY', arData.position.y.toString());
+        queryParams.append('posZ', arData.position.z.toString());
+        queryParams.append('rotX', arData.rotation.x.toString());
+        queryParams.append('rotY', arData.rotation.y.toString());
+        queryParams.append('rotZ', arData.rotation.z.toString());
+        queryParams.append('scale', arData.scale.toString());
         
         setShareUrl(`${baseUrl}/ar-view?${queryParams.toString()}`);
       }
@@ -80,6 +82,9 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
 
   if (!shareUrl) return null;
 
+  // Extract just the path portion for internal navigation
+  const internalPath = new URL(shareUrl).pathname + new URL(shareUrl).search;
+
   return (
     <Card className="w-full max-w-md mx-auto bg-white/90 backdrop-blur-sm">
       <CardHeader>
@@ -110,7 +115,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
             {shareUrl}
           </p>
           <div className="text-center mt-2">
-            <Link to={shareUrl.replace(window.location.origin, '')} className="text-blue-500 hover:underline text-sm">
+            <Link to={internalPath} className="text-blue-500 hover:underline text-sm">
               View in this browser
             </Link>
           </div>
