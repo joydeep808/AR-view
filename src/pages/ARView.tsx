@@ -20,6 +20,26 @@ const ARViewPage = () => {
     scale: 1
   });
 
+  // Helper function to add cache busting to image URLs
+  const addCacheBustingToUrl = (url: string) => {
+    if (!url) return url;
+
+    try {
+      // Only add cache busting to URLs that are not data URLs
+      if (!url.startsWith('data:')) {
+        const urlObj = new URL(url);
+        urlObj.searchParams.set('cb', Date.now().toString());
+        return urlObj.toString();
+      }
+    } catch (e) {
+      // If URL parsing fails, just append a query param
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}cb=${Date.now()}`;
+    }
+    
+    return url;
+  };
+
   useEffect(() => {
     // Function to load AR data
     const loadARData = async () => {
@@ -33,8 +53,8 @@ const ARViewPage = () => {
           setTimeout(() => {
             // This would be replaced with actual data fetching
             setArData({
-              baseImage: "/placeholder.svg", // Default placeholder for demo
-              overlayImage: "/placeholder.svg",
+              baseImage: addCacheBustingToUrl("/placeholder.svg"), // Default placeholder for demo
+              overlayImage: addCacheBustingToUrl("/placeholder.svg"),
               position: { x: 0, y: 0, z: 0 },
               rotation: { x: 0, y: 0, z: 0 },
               scale: 1
@@ -54,8 +74,8 @@ const ARViewPage = () => {
           const overlayImageParam = searchParams.get('overlayImage');
           
           // Handle URL-encoded parameters
-          const baseImage = baseImageParam ? decodeURIComponent(baseImageParam) : null;
-          const overlayImage = overlayImageParam ? decodeURIComponent(overlayImageParam) : null;
+          const baseImage = baseImageParam ? addCacheBustingToUrl(decodeURIComponent(baseImageParam)) : null;
+          const overlayImage = overlayImageParam ? addCacheBustingToUrl(decodeURIComponent(overlayImageParam)) : null;
           
           // Parse position, rotation and scale parameters
           const posX = parseFloat(searchParams.get('posX') || '0');

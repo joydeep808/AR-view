@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
@@ -34,10 +35,13 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
       const encodedBaseImage = encodeURIComponent(baseImageUrl);
       const encodedOverlayImage = overlayImageUrl ? encodeURIComponent(overlayImageUrl) : '';
       
+      // Add timestamp to prevent caching
+      const timestamp = Date.now();
+      
       // In a real implementation, we would generate a unique URL with the AR data
       if (cloudinaryUrls.metadataId) {
         // If we have a metadata ID, use it for a cleaner URL
-        setShareUrl(`${baseUrl}/ar-view/${cloudinaryUrls.metadataId}`);
+        setShareUrl(`${baseUrl}/ar-view/${cloudinaryUrls.metadataId}?t=${timestamp}`);
       } else {
         // Otherwise use query parameters with proper encoding
         const queryParams = new URLSearchParams();
@@ -50,6 +54,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
         queryParams.append('rotY', arData.rotation.y.toString());
         queryParams.append('rotZ', arData.rotation.z.toString());
         queryParams.append('scale', arData.scale.toString());
+        queryParams.append('t', timestamp.toString());
         
         setShareUrl(`${baseUrl}/ar-view?${queryParams.toString()}`);
       }
@@ -76,14 +81,20 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
   };
 
   const testLink = () => {
+    // Generate a fresh URL with a new timestamp before opening
+    const freshUrl = new URL(shareUrl);
+    freshUrl.searchParams.set('t', Date.now().toString());
+    
     // Open the link in a new tab
-    window.open(shareUrl, '_blank');
+    window.open(freshUrl.toString(), '_blank');
   };
 
   if (!shareUrl) return null;
 
-  // Extract just the path portion for internal navigation
-  const internalPath = new URL(shareUrl).pathname + new URL(shareUrl).search;
+  // Extract just the path portion for internal navigation and add a fresh timestamp
+  const url = new URL(shareUrl);
+  url.searchParams.set('t', Date.now().toString());
+  const internalPath = url.pathname + url.search;
 
   return (
     <Card className="w-full max-w-md mx-auto bg-white/90 backdrop-blur-sm">
