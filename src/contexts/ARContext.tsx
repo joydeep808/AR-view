@@ -1,6 +1,7 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
-import { uploadToCloudinary, saveARMetadata } from '@/utils/cloudinaryUtils';
+import { saveARMetadata } from '@/utils/cloudinaryUtils';
+import { saveImages, saveARExperience } from '@/services/imageService';
 import { useToast } from '@/components/ui/use-toast';
 
 interface ARContextProps {
@@ -111,7 +112,7 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     });
   };
 
-  // Function to submit images and metadata to Cloudinary
+  // Function to submit images and metadata to our backend
   const submitToCloudinary = async () => {
     if (!baseImage || !overlayImage) {
       toast({
@@ -125,42 +126,33 @@ export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     setIsSubmitting(true);
     
     try {
-      // Upload both images to Cloudinary
-      const [baseImageUrl, overlayImageUrl] = await Promise.all([
-        uploadToCloudinary(baseImage),
-        uploadToCloudinary(overlayImage)
-      ]);
-
-      // Save metadata
-      const metadata = {
-        position: overlayPosition,
-        rotation: overlayRotation,
-        scale: overlayScale,
-        baseImage: baseImageUrl,
-        overlayImage: overlayImageUrl,
-        timestamp: new Date().toISOString()
-      };
+      // Save experience to backend - this now handles uploads to Cloudinary
+      const result = await saveARExperience(
+        baseImage,
+        overlayImage,
+        overlayPosition,
+        overlayRotation,
+        overlayScale
+      );
       
-      const metadataId = await saveARMetadata(metadata);
-      
-      // Update Cloudinary URLs
+      // Update state with new URLs and metadata ID
       setCloudinaryUrls({
-        baseImage: baseImageUrl,
-        overlayImage: overlayImageUrl,
-        metadataId
+        baseImage: result.shareUrl,
+        overlayImage: result.shareUrl,
+        metadataId: result.uniqueId
       });
       
       toast({
         title: "Success!",
-        description: "Your AR experience has been saved to Cloudinary.",
+        description: "Your AR experience has been saved and is ready to share.",
       });
       
       setShareEnabled(true);
     } catch (error) {
-      console.error('Failed to upload to Cloudinary:', error);
+      console.error('Failed to save AR experience:', error);
       toast({
         title: "Upload failed",
-        description: "Could not upload images to Cloudinary. Please try again.",
+        description: "Could not save your AR experience. Please try again.",
         variant: "destructive",
       });
     } finally {

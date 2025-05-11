@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { ARProvider } from '@/contexts/ARContext';
@@ -6,6 +5,9 @@ import ARViewer from '@/components/ARViewer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/use-toast';
+import { fetchARExperience } from '@/services/imageService';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const ARViewPage = () => {
   const { id } = useParams();
@@ -20,26 +22,6 @@ const ARViewPage = () => {
     scale: 1
   });
 
-  // Helper function to add cache busting to image URLs
-  const addCacheBustingToUrl = (url: string) => {
-    if (!url) return url;
-
-    try {
-      // Only add cache busting to URLs that are not data URLs
-      if (!url.startsWith('data:')) {
-        const urlObj = new URL(url);
-        urlObj.searchParams.set('cb', Date.now().toString());
-        return urlObj.toString();
-      }
-    } catch (e) {
-      // If URL parsing fails, just append a query param
-      const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}cb=${Date.now()}`;
-    }
-    
-    return url;
-  };
-
   useEffect(() => {
     // Function to load AR data
     const loadARData = async () => {
@@ -48,34 +30,33 @@ const ARViewPage = () => {
         // First check if we have an ID in the route params (for metadata-based sharing)
         if (id) {
           console.log("Loading AR data from ID:", id);
-          // In a production app, this would fetch data from the server
-          // For now we'll simulate data loading with a timeout
-          setTimeout(() => {
-            // This would be replaced with actual data fetching
-            setArData({
-              baseImage: addCacheBustingToUrl("/placeholder.svg"), // Default placeholder for demo
-              overlayImage: addCacheBustingToUrl("/placeholder.svg"),
-              position: { x: 0, y: 0, z: 0 },
-              rotation: { x: 0, y: 0, z: 0 },
-              scale: 1
-            });
-            setIsLoading(false);
-            
-            toast({
-              title: "AR Experience Loaded",
-              description: "Demo AR experience has been loaded successfully.",
-            });
-          }, 1000);
+          
+          // Fetch AR experience data from our backend API
+          const arExperience = await fetchARExperience(id);
+          
+          setArData({
+            baseImage: arExperience.baseImage,
+            overlayImage: arExperience.overlayImage,
+            position: arExperience.position,
+            rotation: arExperience.rotation,
+            scale: arExperience.scale
+          });
+          
+          setIsLoading(false);
+          toast({
+            title: "AR Experience Loaded",
+            description: "AR experience has been loaded successfully.",
+          });
         }
-        // Otherwise try to use search params
+        // Otherwise try to use search params (legacy support)
         else {
           // Get and decode parameters
           const baseImageParam = searchParams.get('baseImage');
           const overlayImageParam = searchParams.get('overlayImage');
           
           // Handle URL-encoded parameters
-          const baseImage = baseImageParam ? addCacheBustingToUrl(decodeURIComponent(baseImageParam)) : null;
-          const overlayImage = overlayImageParam ? addCacheBustingToUrl(decodeURIComponent(overlayImageParam)) : null;
+          const baseImage = baseImageParam ? decodeURIComponent(baseImageParam) : null;
+          const overlayImage = overlayImageParam ? decodeURIComponent(overlayImageParam) : null;
           
           // Parse position, rotation and scale parameters
           const posX = parseFloat(searchParams.get('posX') || '0');
@@ -103,10 +84,9 @@ const ARViewPage = () => {
           });
           setIsLoading(false);
           
-          // Show success toast when AR data loads successfully
           toast({
             title: "AR Experience Loaded",
-            description: "Your AR experience has been loaded successfully.",
+            description: "Your AR experience has been loaded using legacy mode.",
           });
         }
       } catch (err) {
@@ -148,24 +128,17 @@ const ARViewPage = () => {
             <div className="text-center p-8">
               <h2 className="text-2xl font-bold text-red-500 mb-4">Error</h2>
               <p>{error}</p>
-              <a href="/" className="text-blue-500 hover:text-blue-700 underline mt-4 block">
-                Return to Home
-              </a>
+              <Link to="/">
+                <Button className="mt-4">
+                  Return to Home
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
       </div>
     );
   }
-
-  // Initial data for ARProvider - this will be properly consumed by ARViewer
-  const initialARData = {
-    initialBaseImage: arData.baseImage,
-    initialOverlayImage: arData.overlayImage,
-    initialPosition: arData.position,
-    initialRotation: arData.rotation,
-    initialScale: arData.scale
-  };
 
   return (
     <ARProvider>
@@ -184,9 +157,9 @@ const ARViewPage = () => {
         </div>
 
         <div className="mt-8 text-center">
-          <a href="/" className="text-blue-500 hover:text-blue-700 underline">
+          <Link to="/" className="text-blue-500 hover:text-blue-700 underline">
             Create Your Own AR Experience
-          </a>
+          </Link>
         </div>
       </div>
     </ARProvider>

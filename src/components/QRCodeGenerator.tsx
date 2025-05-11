@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAR } from '@/contexts/ARContext';
 import { Link } from 'react-router-dom';
+import { saveARExperience } from '@/services/imageService';
 
 interface QRCodeGeneratorProps {
   arData: {
@@ -19,47 +20,64 @@ interface QRCodeGeneratorProps {
 
 const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
   const [shareUrl, setShareUrl] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const { toast } = useToast();
   const { cloudinaryUrls } = useAR();
 
   useEffect(() => {
-    if (arData.baseImage && arData.overlayImage) {
-      // Use Cloudinary URLs if available
-      const baseImageUrl = cloudinaryUrls.baseImage || arData.baseImage;
-      const overlayImageUrl = cloudinaryUrls.overlayImage || arData.overlayImage;
-      
-      // Determine the base URL based on the environment
-      const baseUrl = window.location.origin;
-      
-      // Ensure all URLs are properly encoded
-      const encodedBaseImage = encodeURIComponent(baseImageUrl);
-      const encodedOverlayImage = overlayImageUrl ? encodeURIComponent(overlayImageUrl) : '';
-      
-      // Add timestamp to prevent caching
-      const timestamp = Date.now();
-      
-      // In a real implementation, we would generate a unique URL with the AR data
-      if (cloudinaryUrls.metadataId) {
-        // If we have a metadata ID, use it for a cleaner URL
-        setShareUrl(`${baseUrl}/ar-view/${cloudinaryUrls.metadataId}?t=${timestamp}`);
-      } else {
-        // Otherwise use query parameters with proper encoding
-        const queryParams = new URLSearchParams();
-        queryParams.append('baseImage', encodedBaseImage);
-        if (encodedOverlayImage) queryParams.append('overlayImage', encodedOverlayImage);
-        queryParams.append('posX', arData.position.x.toString());
-        queryParams.append('posY', arData.position.y.toString());
-        queryParams.append('posZ', arData.position.z.toString());
-        queryParams.append('rotX', arData.rotation.x.toString());
-        queryParams.append('rotY', arData.rotation.y.toString());
-        queryParams.append('rotZ', arData.rotation.z.toString());
-        queryParams.append('scale', arData.scale.toString());
-        queryParams.append('t', timestamp.toString());
-        
-        setShareUrl(`${baseUrl}/ar-view?${queryParams.toString()}`);
+    const generateShareUrl = async () => {
+      if (arData.baseImage && arData.overlayImage) {
+        // If we already have a metadata ID from Cloudinary, use it
+        if (cloudinaryUrls.metadataId) {
+          const baseUrl = window.location.origin;
+          setShareUrl(`${baseUrl}/ar-view/${cloudinaryUrls.metadataId}`);
+        }
       }
-    }
+    };
+
+    generateShareUrl();
   }, [arData, cloudinaryUrls]);
+
+  const generateNewShareUrl = async () => {
+    if (!arData.baseImage || !arData.overlayImage) {
+      toast({
+        title: "Missing images",
+        description: "Please upload both base and overlay images.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      // Save AR experience and get unique ID
+      const result = await saveARExperience(
+        arData.baseImage,
+        arData.overlayImage,
+        arData.position,
+        arData.rotation,
+        arData.scale
+      );
+
+      const baseUrl = window.location.origin;
+      const newShareUrl = `${baseUrl}/ar-view/${result.uniqueId}`;
+      setShareUrl(newShareUrl);
+      
+      toast({
+        title: "QR Code generated",
+        description: "Your AR experience is ready to share!",
+      });
+    } catch (error) {
+      console.error('Error generating share URL:', error);
+      toast({
+        title: "Generation failed",
+        description: "Could not generate QR code. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(shareUrl).then(
@@ -81,20 +99,11 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
   };
 
   const testLink = () => {
-    // Generate a fresh URL with a new timestamp before opening
-    const freshUrl = new URL(shareUrl);
-    freshUrl.searchParams.set('t', Date.now().toString());
-    
     // Open the link in a new tab
-    window.open(freshUrl.toString(), '_blank');
+    window.open(shareUrl, '_blank');
   };
 
-  if (!shareUrl) return null;
-
-  // Extract just the path portion for internal navigation and add a fresh timestamp
-  const url = new URL(shareUrl);
-  url.searchParams.set('t', Date.now().toString());
-  const internalPath = url.pathname + url.search;
+  if (!arData.baseImage || !arData.overlayImage) return null;
 
   return (
     <Card className="w-full max-w-md mx-auto bg-white/90 backdrop-blur-sm">
@@ -104,33 +113,45 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center space-y-4">
-        <div className="p-4 bg-white rounded-lg">
-          <QRCodeSVG value={shareUrl} size={200} />
-        </div>
-        <div className="w-full space-y-2">
-          <div className="grid grid-cols-2 gap-2">
-            <Button 
-              onClick={copyToClipboard}
-              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-            >
-              Copy Link
-            </Button>
-            <Button 
-              onClick={testLink}
-              variant="outline"
-            >
-              Test Link
-            </Button>
-          </div>
-          <p className="text-center text-sm text-muted-foreground break-all">
-            {shareUrl}
-          </p>
-          <div className="text-center mt-2">
-            <Link to={internalPath} className="text-blue-500 hover:underline text-sm">
-              View in this browser
-            </Link>
-          </div>
-        </div>
+        {shareUrl ? (
+          <>
+            <div className="p-4 bg-white rounded-lg">
+              <QRCodeSVG value={shareUrl} size={200} />
+            </div>
+            <div className="w-full space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  onClick={copyToClipboard}
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                >
+                  Copy Link
+                </Button>
+                <Button 
+                  onClick={testLink}
+                  variant="outline"
+                >
+                  Test Link
+                </Button>
+              </div>
+              <p className="text-center text-sm text-muted-foreground break-all">
+                {shareUrl}
+              </p>
+              <div className="text-center mt-2">
+                <Link to={shareUrl.replace(window.location.origin, '')} className="text-blue-500 hover:underline text-sm">
+                  View in this browser
+                </Link>
+              </div>
+            </div>
+          </>
+        ) : (
+          <Button 
+            onClick={generateNewShareUrl} 
+            disabled={isGenerating}
+            className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+          >
+            {isGenerating ? "Generating..." : "Generate QR Code"}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

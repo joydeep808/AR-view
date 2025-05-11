@@ -1,7 +1,6 @@
 
-
-// Local storage service for image URLs
-// This can be replaced with Cloudinary in the future
+// Local storage service for image URLs with backend integration
+import { saveARMetadata } from '@/utils/cloudinaryUtils';
 
 const LOCAL_STORAGE_KEY = 'ar_viewer_images';
 
@@ -70,13 +69,88 @@ export const clearImages = (): void => {
   }
 };
 
-// Function to be used when switching to Cloudinary
-export const convertToCloudinaryStrategy = async (): Promise<void> => {
-  // Placeholder for future implementation
-  console.log('Converting to Cloudinary strategy (not implemented yet)');
-  // This would involve:
-  // 1. Loading images from local storage
-  // 2. Uploading them to Cloudinary
-  // 3. Saving the Cloudinary URLs instead
+// Save AR experience to backend and get a unique ID
+export const saveARExperience = async (
+  baseImage: string, 
+  overlayImage: string,
+  position: { x: number; y: number; z: number },
+  rotation: { x: number; y: number; z: number },
+  scale: number
+): Promise<{ uniqueId: string; shareUrl: string }> => {
+  try {
+    const response = await fetch('/api/share', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        baseImage,
+        overlayImage,
+        position,
+        rotation,
+        scale
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to save AR experience: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.message || 'Unknown error saving AR experience');
+    }
+    
+    return {
+      uniqueId: data.uniqueId,
+      shareUrl: data.shareUrl
+    };
+  } catch (error) {
+    console.error('Error saving AR experience:', error);
+    throw error;
+  }
 };
 
+// Fetch AR experience from backend by ID
+export const fetchARExperience = async (uniqueId: string): Promise<{
+  baseImage: string;
+  overlayImage: string;
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number };
+  scale: number;
+}> => {
+  try {
+    const response = await fetch(`/api/ar-experience/${uniqueId}`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch AR experience: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.message || 'Unknown error fetching AR experience');
+    }
+    
+    return data.arData;
+  } catch (error) {
+    console.error('Error fetching AR experience:', error);
+    throw error;
+  }
+};
+
+// Function to be used when converting local storage to backend
+export const migrateLocalStorageToBackend = async (): Promise<void> => {
+  try {
+    const localData = loadImages();
+    
+    if (localData.baseImage && localData.overlayImage) {
+      // This would be implemented to migrate existing local storage data to backend
+      console.log('Migrating local data to backend');
+      // Implementation would depend on specific requirements
+    }
+  } catch (error) {
+    console.error('Error migrating data to backend:', error);
+  }
+};
