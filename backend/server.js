@@ -19,19 +19,22 @@ const port = config.port;
 connectToDatabase();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: config.frontendUrl,
+  credentials: true
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'dist')));
+// Serve static files - path adjusted for backend folder
+app.use(express.static(path.join(__dirname, '../dist')));
 
 // API Routes
 app.use('/api', arRoutes);
 
-// Fallback route - Serve the main HTML file
+// Fallback route - Serve the main HTML file - path adjusted for backend folder
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  res.sendFile(path.join(__dirname, '../dist', 'index.html'));
 });
 
 // Start server

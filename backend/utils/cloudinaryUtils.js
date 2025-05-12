@@ -13,6 +13,11 @@ cloudinary.config({
 // Upload image to Cloudinary
 export const uploadToCloudinary = async (base64Image) => {
   try {
+    // Validate that the base64Image is provided
+    if (!base64Image) {
+      throw new Error('No image data provided');
+    }
+    
     const result = await cloudinary.uploader.upload(base64Image, {
       resource_type: 'image',
       folder: 'ar_viewer',
