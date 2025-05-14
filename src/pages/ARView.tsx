@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { ARProvider } from '@/contexts/ARContext';
@@ -141,7 +142,15 @@ const ARViewPage = () => {
   }
 
   return (
-    <ARProvider>
+    <ARProvider
+      initialData={{
+        baseImage: arData.baseImage,
+        overlayImage: arData.overlayImage,
+        overlayPosition: arData.position,
+        overlayRotation: arData.rotation,
+        overlayScale: arData.scale
+      }}
+    >
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <header className="mb-8 text-center">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">

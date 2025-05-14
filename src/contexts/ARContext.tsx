@@ -27,20 +27,38 @@ interface ARContextProps {
   };
 }
 
+// New interface for initial data
+interface InitialARData {
+  baseImage: string | null;
+  overlayImage: string | null;
+  overlayPosition?: { x: number; y: number; z: number };
+  overlayRotation?: { x: number; y: number; z: number };
+  overlayScale?: number;
+}
+
 const ARContext = createContext<ARContextProps | undefined>(undefined);
 
-export const ARProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+interface ARProviderProps {
+  children: ReactNode;
+  initialData?: InitialARData;
+}
+
+export const ARProvider: React.FC<ARProviderProps> = ({ children, initialData }) => {
   const { toast } = useToast();
-  const [baseImage, setBaseImage] = useState<string | null>(null);
-  const [overlayImage, setOverlayImage] = useState<string | null>(null);
-  const [overlayPosition, setOverlayPosition] = useState({ x: 0, y: 0.5, z: 0.1 });
-  const [overlayRotation, setOverlayRotation] = useState({ 
-    x: Math.PI / 2, // 90 degrees in radians
-    y: 0, 
-    z: 0 
-  });
-  const [overlayScale, setOverlayScale] = useState(0.8);
-  const [shareEnabled, setShareEnabled] = useState(false);
+  const [baseImage, setBaseImage] = useState<string | null>(initialData?.baseImage || null);
+  const [overlayImage, setOverlayImage] = useState<string | null>(initialData?.overlayImage || null);
+  const [overlayPosition, setOverlayPosition] = useState(
+    initialData?.overlayPosition || { x: 0, y: 0.5, z: 0.1 }
+  );
+  const [overlayRotation, setOverlayRotation] = useState(
+    initialData?.overlayRotation || { 
+      x: Math.PI / 2, // 90 degrees in radians
+      y: 0, 
+      z: 0 
+    }
+  );
+  const [overlayScale, setOverlayScale] = useState(initialData?.overlayScale || 0.8);
+  const [shareEnabled, setShareEnabled] = useState(!!initialData?.overlayImage || false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cloudinaryUrls, setCloudinaryUrls] = useState({
     baseImage: null as string | null,

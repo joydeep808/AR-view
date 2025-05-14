@@ -37,6 +37,15 @@ const Plane: React.FC<PlaneProps> = ({
 const Scene: React.FC = () => {
   const { baseImage, overlayImage, overlayPosition, overlayRotation, overlayScale } = useAR();
   
+  // Log values to help debug
+  console.log("Rendering Scene with:", { 
+    baseImage, 
+    overlayImage, 
+    overlayPosition, 
+    overlayRotation, 
+    overlayScale 
+  });
+  
   // Load textures
   const baseTexture = useLoader(THREE.TextureLoader, baseImage || '/placeholder.svg');
   const overlayTexture = overlayImage ? useLoader(THREE.TextureLoader, overlayImage) : null;
@@ -53,9 +62,6 @@ const Scene: React.FC = () => {
     overlayRotation.y,
     overlayRotation.z
   ];
-
-  // Remove the force re-render mechanism as it might be causing issues
-  // Just rely on React's natural re-rendering when props change
 
   return (
     <>
@@ -116,7 +122,9 @@ const LoadingFallback: React.FC = () => {
 };
 
 const ARViewer: React.FC = () => {
-  const { baseImage, overlayImage, resetAR, setOverlayImage, overlayPosition, overlayRotation, overlayScale } = useAR();
+  const { baseImage, overlayImage, resetAR, setOverlayImage } = useAR();
+  
+  console.log("ARViewer received:", { baseImage, overlayImage });
   
   if (!baseImage) {
     return (
