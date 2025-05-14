@@ -1,12 +1,12 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAR } from '@/contexts/ARContext';
-import { Link } from 'react-router-dom';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { toast } from '@/components/ui/use-toast';
 import { saveARExperience } from '@/services/imageService';
+import { Link } from 'react-router-dom';
+import { useAR } from '@/contexts/ARContext';
 
 interface QRCodeGeneratorProps {
   arData: {
@@ -19,139 +19,93 @@ interface QRCodeGeneratorProps {
 }
 
 const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({ arData }) => {
-  const [shareUrl, setShareUrl] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const { toast } = useToast();
-  const { cloudinaryUrls } = useAR();
-
-  useEffect(() => {
-    const generateShareUrl = async () => {
-      if (arData.baseImage && arData.overlayImage) {
-        // If we already have a metadata ID from Cloudinary, use it
-        if (cloudinaryUrls.metadataId) {
-          const baseUrl = window.location.origin;
-          setShareUrl(`${baseUrl}/ar-view/${cloudinaryUrls.metadataId}`);
-        }
-      }
-    };
-
-    generateShareUrl();
-  }, [arData, cloudinaryUrls]);
-
-  const generateNewShareUrl = async () => {
-    if (!arData.baseImage || !arData.overlayImage) {
-      toast({
-        title: "Missing images",
-        description: "Please upload both base and overlay images.",
-        variant: "destructive",
-      });
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const { cloudinaryUrls, isSubmitting, submitToCloudinary } = useAR();
+  
+  const generateNewQRCode = async () => {
+    // If we already have a Cloudinary URL from context, use it
+    if (cloudinaryUrls.metadataId) {
+      const url = `${window.location.origin}/ar-view/${cloudinaryUrls.metadataId}`;
+      setShareUrl(url);
       return;
     }
-
+    
     setIsGenerating(true);
     try {
-      // Save AR experience and get unique ID
-      const result = await saveARExperience(
-        arData.baseImage,
-        arData.overlayImage,
-        arData.position,
-        arData.rotation,
-        arData.scale
-      );
-
-      const baseUrl = window.location.origin;
-      const newShareUrl = `${baseUrl}/ar-view/${result.uniqueId}`;
-      setShareUrl(newShareUrl);
-      
-      toast({
-        title: "QR Code generated",
-        description: "Your AR experience is ready to share!",
-      });
+      // Submit to backend API
+      await submitToCloudinary();
+      setIsGenerating(false);
     } catch (error) {
-      console.error('Error generating share URL:', error);
+      console.error('Failed to generate QR code:', error);
       toast({
-        title: "Generation failed",
-        description: "Could not generate QR code. Please try again.",
+        title: "QR Code Generation Failed",
+        description: "There was an error creating your shareable link.",
         variant: "destructive",
       });
-    } finally {
       setIsGenerating(false);
     }
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(shareUrl).then(
-      () => {
-        toast({
-          title: "Link copied!",
-          description: "The AR view link has been copied to your clipboard.",
+    if (shareUrl) {
+      navigator.clipboard.writeText(shareUrl)
+        .then(() => {
+          toast({
+            title: "Link Copied",
+            description: "Share URL copied to clipboard",
+          });
+        })
+        .catch(() => {
+          toast({
+            title: "Copy Failed",
+            description: "Could not copy to clipboard",
+            variant: "destructive",
+          });
         });
-      },
-      (err) => {
-        toast({
-          title: "Failed to copy",
-          description: "Could not copy the link to clipboard.",
-          variant: "destructive",
-        });
-        console.error('Could not copy text: ', err);
-      },
-    );
+    }
   };
 
-  const testLink = () => {
-    // Open the link in a new tab
-    window.open(shareUrl, '_blank');
-  };
-
-  if (!arData.baseImage || !arData.overlayImage) return null;
+  // Use the metadataId from context if available
+  const finalShareUrl = shareUrl || (cloudinaryUrls.metadataId ? 
+    `${window.location.origin}/ar-view/${cloudinaryUrls.metadataId}` : null);
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-white/90 backdrop-blur-sm">
-      <CardHeader>
-        <CardTitle className="text-center">
-          Share Your AR View
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col items-center space-y-4">
-        {shareUrl ? (
-          <>
-            <div className="p-4 bg-white rounded-lg">
-              <QRCodeSVG value={shareUrl} size={200} />
-            </div>
-            <div className="w-full space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  onClick={copyToClipboard}
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-                >
+    <Card>
+      <CardContent className="pt-6">
+        <div className="text-center">
+          <h3 className="text-lg font-medium mb-4">Share Your Creation</h3>
+          
+          {finalShareUrl ? (
+            <div className="flex flex-col items-center space-y-4">
+              <div className="p-3 bg-white rounded-lg">
+                <QRCodeSVG
+                  value={finalShareUrl}
+                  size={200}
+                  level="H"
+                  includeMargin
+                />
+              </div>
+              <p className="text-sm break-all">{finalShareUrl}</p>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button variant="outline" onClick={copyToClipboard}>
                   Copy Link
                 </Button>
-                <Button 
-                  onClick={testLink}
-                  variant="outline"
-                >
-                  Test Link
-                </Button>
-              </div>
-              <p className="text-center text-sm text-muted-foreground break-all">
-                {shareUrl}
-              </p>
-              <div className="text-center mt-2">
-                <Link to={shareUrl.replace(window.location.origin, '')} className="text-blue-500 hover:underline text-sm">
-                  View in this browser
+                <Link to={finalShareUrl}>
+                  <Button>Open AR View</Button>
                 </Link>
               </div>
             </div>
-          </>
-        ) : (
-          <Button 
-            onClick={generateNewShareUrl} 
-            disabled={isGenerating}
-            className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-          >
-            {isGenerating ? "Generating..." : "Generate QR Code"}
-          </Button>
-        )}
+          ) : (
+            <Button 
+              onClick={generateNewQRCode} 
+              disabled={isGenerating || isSubmitting}
+            >
+              {isGenerating || isSubmitting ? 'Generating...' : 'Generate Share Link'}
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
