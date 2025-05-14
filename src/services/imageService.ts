@@ -1,8 +1,6 @@
+// Image service for handling AR images with backend API integration
 
-// Local storage service for image URLs with backend integration
-import { saveARMetadata } from '@/utils/cloudinaryUtils';
-
-const LOCAL_STORAGE_KEY = 'ar_viewer_images';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface StoredImages {
   baseImage: string | null;
@@ -17,7 +15,7 @@ export const saveImages = (baseImage: string | null, overlayImage: string | null
     timestamp: Date.now() 
   };
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(images));
+    localStorage.setItem('ar_viewer_images', JSON.stringify(images));
   } catch (error) {
     console.error('Error saving images to local storage:', error);
   }
@@ -43,7 +41,7 @@ const addCacheBusting = (url: string | null): string | null => {
 
 export const loadImages = (): StoredImages => {
   try {
-    const savedImages = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const savedImages = localStorage.getItem('ar_viewer_images');
     if (savedImages) {
       const parsedImages = JSON.parse(savedImages) as StoredImages;
       
@@ -63,7 +61,7 @@ export const loadImages = (): StoredImages => {
 
 export const clearImages = (): void => {
   try {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    localStorage.removeItem('ar_viewer_images');
   } catch (error) {
     console.error('Error clearing images from local storage:', error);
   }
@@ -78,7 +76,7 @@ export const saveARExperience = async (
   scale: number
 ): Promise<{ uniqueId: string; shareUrl: string }> => {
   try {
-    const response = await fetch('/api/share', {
+    const response = await fetch(`${API_BASE_URL}/share`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -121,7 +119,7 @@ export const fetchARExperience = async (uniqueId: string): Promise<{
   scale: number;
 }> => {
   try {
-    const response = await fetch(`/api/ar-experience/${uniqueId}`);
+    const response = await fetch(`${API_BASE_URL}/ar-experience/${uniqueId}`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch AR experience: ${response.status}`);

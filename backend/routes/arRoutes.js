@@ -3,6 +3,7 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import ARExperience from '../models/ARExperience.js';
 import { uploadToCloudinary } from '../utils/cloudinaryUtils.js';
+import config from '../config/config.js';
 
 const router = express.Router();
 
@@ -41,8 +42,8 @@ router.post('/share', async (req, res) => {
 
     await arExperience.save();
 
-    // Create share URL
-    const shareUrl = `${req.protocol}://${req.get('host')}/ar-view/${uniqueId}`;
+    // Create share URL - now using frontend URL from config
+    const shareUrl = `${config.frontendUrl}/ar-view/${uniqueId}`;
 
     res.json({
       success: true,
