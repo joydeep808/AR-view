@@ -1,3 +1,4 @@
+
 // Image service for handling AR images with backend API integration
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
