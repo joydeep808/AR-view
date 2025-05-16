@@ -26,9 +26,13 @@ export const loadImages = () => {
   }
 };
 
-// Add cache busting to URLs - improved to handle null and undefined
+// Add cache busting to URLs - more robust handling for different URL types
 export const addCacheBuster = (url: string | null | undefined): string | null => {
   if (!url) return null;
+  
+  // Don't add cache busting to data URLs
+  if (url.startsWith('data:')) return url;
+  
   const cacheBuster = Date.now();
   return url.includes('?') ? 
     `${url}&cb=${cacheBuster}` : 
@@ -38,6 +42,10 @@ export const addCacheBuster = (url: string | null | undefined): string | null =>
 // Check if URL is valid
 export const isValidUrl = (url: string | null | undefined): boolean => {
   if (!url) return false;
+  
+  // Data URLs are valid
+  if (url.startsWith('data:')) return true;
+  
   try {
     new URL(url);
     return true;
@@ -46,7 +54,13 @@ export const isValidUrl = (url: string | null | undefined): boolean => {
   }
 };
 
-// Save AR experience to backend
+// Determine if a string is a data URL
+export const isDataUrl = (url: string | null | undefined): boolean => {
+  if (!url) return false;
+  return url.startsWith('data:');
+};
+
+// Save AR experience to backend with improved error handling
 export const saveARExperience = async (
   baseImage: string,
   overlayImage: string,
@@ -54,32 +68,42 @@ export const saveARExperience = async (
   rotation: { x: number; y: number; z: number },
   scale: number
 ) => {
-  console.log("Saving AR experience with:", { baseImage, overlayImage });
-  
-  const response = await fetch(`${API_BASE_URL}/share`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      baseImage,
-      overlayImage,
-      position,
-      rotation,
-      scale
-    })
+  console.log("Saving AR experience with:", { 
+    baseImageType: typeof baseImage,
+    baseImageLength: baseImage.length,
+    overlayImageType: typeof overlayImage,
+    overlayImageLength: overlayImage.length
   });
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/share`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        baseImage,
+        overlayImage,
+        position,
+        rotation,
+        scale
+      })
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || 'Failed to save AR experience');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to save AR experience');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Error in saveARExperience:', error);
+    throw error;
   }
-
-  return response.json();
 };
 
 // Fetch AR experience by id with retries and extended timeout
-export const fetchARExperience = async (id: string, retries = 2) => {
+export const fetchARExperience = async (id: string, retries = 3) => {
   console.log("Fetching AR experience with ID:", id);
   
   // Add cache busting to prevent stale data
@@ -91,7 +115,9 @@ export const fetchARExperience = async (id: string, retries = 2) => {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      
+      console.log(`Fetch attempt ${attempt + 1} for AR experience`);
       
       const response = await fetch(addCacheBuster(url) || url, {
         signal: controller.signal,
@@ -105,7 +131,7 @@ export const fetchARExperience = async (id: string, retries = 2) => {
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: `HTTP error ${response.status}` }));
         throw new Error(errorData.message || 'Failed to fetch AR experience');
       }
 
@@ -114,12 +140,6 @@ export const fetchARExperience = async (id: string, retries = 2) => {
       
       if (!data.arData || !data.arData.baseImage) {
         throw new Error('Invalid AR data structure received');
-      }
-      
-      // Validate URLs before returning
-      if (!isValidUrl(data.arData.baseImage)) {
-        console.error("Invalid base image URL:", data.arData.baseImage);
-        throw new Error('Invalid base image URL');
       }
       
       return data.arData;

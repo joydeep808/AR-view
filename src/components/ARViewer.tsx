@@ -6,6 +6,7 @@ import { OrbitControls, PerspectiveCamera, Html } from '@react-three/drei';
 import { useAR } from '@/contexts/ARContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { isDataUrl } from '@/services/imageService';
 
 interface PlaneProps {
   texture: THREE.Texture;
@@ -34,7 +35,7 @@ const Plane: React.FC<PlaneProps> = ({
   );
 };
 
-// Improved texture loader with better error handling and proxy support
+// Enhanced texture loader with better error handling for different URL types
 const TextureLoader = ({ 
   url, 
   children, 
@@ -45,39 +46,81 @@ const TextureLoader = ({
   fallback?: React.ReactNode;
 }) => {
   const [error, setError] = useState<Error | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   
   // If no URL provided, show fallback
   if (!url) {
     console.log("No image URL provided");
     return fallback || null;
   }
-
-  // Process URL to avoid CORS and cache issues
+  
+  // Handle different URL types
   let processedUrl = url;
+  console.log("Processing texture URL:", url.substring(0, 100) + (url.length > 100 ? '...' : ''));
   
-  // Add cache buster
-  const timestamp = Date.now();
-  processedUrl = url.includes('?') ? 
-    `${url}&t=${timestamp}` : 
-    `${url}?t=${timestamp}`;
-  
-  console.log("Loading texture from URL:", processedUrl);
+  // Don't add timestamp for data URLs
+  if (!isDataUrl(url)) {
+    // Add cache buster for regular URLs
+    const timestamp = Date.now();
+    processedUrl = url.includes('?') ? 
+      `${url}&t=${timestamp}` : 
+      `${url}?t=${timestamp}`;
+  }
   
   try {
-    // Use React Three Fiber's useLoader with error handling
-    const texture = useLoader(THREE.TextureLoader, processedUrl);
+    console.log("Loading texture from URL type:", isDataUrl(url) ? "data:URL" : "regular URL");
     
-    // If texture loaded successfully
-    if (texture) {
-      console.log("Texture loaded successfully:", processedUrl);
-      texture.needsUpdate = true; // Force texture update
+    // Create a texture loader with specific handling for data URLs
+    let texture: THREE.Texture;
+    
+    if (isDataUrl(url)) {
+      // Handle data URLs using a manual texture creation process
+      const image = new Image();
+      texture = new THREE.Texture(image);
+      
+      image.onload = () => {
+        texture.needsUpdate = true;
+        setLoading(false);
+      };
+      
+      image.onerror = (err) => {
+        console.error("Error loading data URL image:", err);
+        setError(new Error('Failed to load data URL image'));
+        setLoading(false);
+      };
+      
+      // Set the source to the data URL
+      image.src = url;
+      
+      // Return a placeholder while loading
+      if (loading) {
+        return <Html center><div className="text-white p-2 bg-black/50 rounded">Loading image...</div></Html>;
+      }
+      
+      // Handle errors
+      if (error) {
+        console.error("Error during data URL texture creation:", error);
+        return fallback || <Html center><div className="text-white p-2 bg-black/50 rounded">Failed to load image</div></Html>;
+      }
+      
+      // Return the texture when successful
       return <>{children(texture)}</>;
     } else {
-      console.error("Texture failed to load (undefined texture):", processedUrl);
-      return fallback || null;
+      // Use React Three Fiber's useLoader for regular URLs
+      texture = useLoader(THREE.TextureLoader, processedUrl);
+      
+      // If texture loaded successfully
+      if (texture) {
+        console.log("Texture loaded successfully");
+        texture.needsUpdate = true; // Force texture update
+        return <>{children(texture)}</>;
+      } else {
+        console.error("Texture failed to load (undefined texture)");
+        return fallback || <Html center><div className="text-white p-2 bg-black/50 rounded">Failed to load image</div></Html>;
+      }
     }
   } catch (err) {
-    console.error("Error loading texture:", processedUrl, err);
+    console.error("Error loading texture:", err);
     return fallback || <Html center><div className="text-white p-2 bg-black/50 rounded">Failed to load image</div></Html>;
   }
 };
@@ -86,8 +129,8 @@ const Scene: React.FC = () => {
   const { baseImage, overlayImage, overlayPosition, overlayRotation, overlayScale } = useAR();
   
   console.log("Rendering AR Scene with:", { 
-    baseImage, 
-    overlayImage, 
+    baseImage: baseImage ? baseImage.substring(0, 50) + '...' : null, 
+    overlayImage: overlayImage ? overlayImage.substring(0, 50) + '...' : null,
     overlayPosition, 
     overlayRotation, 
     overlayScale 
@@ -109,14 +152,16 @@ const Scene: React.FC = () => {
   return (
     <>
       {/* Base image */}
-      <TextureLoader 
-        url={baseImage}
-        fallback={<Html center><div className="text-white p-2 bg-black/50 rounded">Failed to load base image</div></Html>}
-      >
-        {(texture) => (
-          <Plane texture={texture} isBase position={[0, 0, 0]} />
-        )}
-      </TextureLoader>
+      {baseImage && (
+        <TextureLoader 
+          url={baseImage}
+          fallback={<Html center><div className="text-white p-2 bg-black/50 rounded">Failed to load base image</div></Html>}
+        >
+          {(texture) => (
+            <Plane texture={texture} isBase position={[0, 0, 0]} />
+          )}
+        </TextureLoader>
+      )}
       
       {/* Overlay image if available */}
       {overlayImage && (
@@ -181,7 +226,10 @@ const LoadingFallback: React.FC = () => {
 const ARViewer: React.FC = () => {
   const { baseImage, overlayImage, resetAR, setOverlayImage } = useAR();
   
-  console.log("ARViewer received:", { baseImage, overlayImage });
+  console.log("ARViewer received:", { 
+    baseImage: baseImage ? `${baseImage.substring(0, 30)}...` : null, 
+    overlayImage: overlayImage ? `${overlayImage.substring(0, 30)}...` : null 
+  });
   
   if (!baseImage) {
     return (
