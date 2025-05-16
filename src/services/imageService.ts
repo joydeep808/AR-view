@@ -26,6 +26,15 @@ export const loadImages = () => {
   }
 };
 
+// Add cache busting to URLs 
+const addCacheBuster = (url: string): string => {
+  if (!url) return url;
+  const cacheBuster = Date.now();
+  return url.includes('?') ? 
+    `${url}&cb=${cacheBuster}` : 
+    `${url}?cb=${cacheBuster}`;
+};
+
 // Save AR experience to backend
 export const saveARExperience = async (
   baseImage: string,
@@ -58,7 +67,11 @@ export const saveARExperience = async (
 
 // Fetch AR experience by id
 export const fetchARExperience = async (id: string) => {
-  const response = await fetch(`${API_BASE_URL}/ar-experience/${id}`);
+  console.log("Fetching AR experience with ID:", id);
+  
+  // Add cache busting to prevent stale data
+  const url = `${API_BASE_URL}/ar-experience/${id}`;
+  const response = await fetch(addCacheBuster(url));
   
   if (!response.ok) {
     const errorData = await response.json();
@@ -66,5 +79,7 @@ export const fetchARExperience = async (id: string) => {
   }
 
   const data = await response.json();
+  console.log("Fetched AR data:", data);
+  
   return data.arData;
 };

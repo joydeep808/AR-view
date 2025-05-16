@@ -34,10 +34,33 @@ const Plane: React.FC<PlaneProps> = ({
   );
 };
 
+// Create a wrapper component to handle loading textures with error handling
+const TextureLoader: React.FC<{
+  url: string | null;
+  children: (texture: THREE.Texture) => React.ReactNode;
+  fallback?: React.ReactNode;
+}> = ({ url, children, fallback }) => {
+  if (!url) {
+    return fallback || null;
+  }
+  
+  try {
+    // Add timestamp to URL to break cache
+    const cacheBustUrl = url.includes('?') ? 
+      `${url}&cb=${Date.now()}` : 
+      `${url}?cb=${Date.now()}`;
+    
+    const texture = useLoader(THREE.TextureLoader, cacheBustUrl);
+    return <>{children(texture)}</>;
+  } catch (error) {
+    console.error("Failed to load texture:", url, error);
+    return fallback || null;
+  }
+};
+
 const Scene: React.FC = () => {
   const { baseImage, overlayImage, overlayPosition, overlayRotation, overlayScale } = useAR();
   
-  // Log values to help debug
   console.log("Rendering Scene with:", { 
     baseImage, 
     overlayImage, 
@@ -46,10 +69,6 @@ const Scene: React.FC = () => {
     overlayScale 
   });
   
-  // Load textures
-  const baseTexture = useLoader(THREE.TextureLoader, baseImage || '/placeholder.svg');
-  const overlayTexture = overlayImage ? useLoader(THREE.TextureLoader, overlayImage) : null;
-
   // Convert object position and rotation to arrays for Three.js
   const positionArray: [number, number, number] = [
     overlayPosition.x,
@@ -66,16 +85,30 @@ const Scene: React.FC = () => {
   return (
     <>
       {/* Base image */}
-      <Plane texture={baseTexture} isBase position={[0, 0, 0]} />
+      <TextureLoader 
+        url={baseImage}
+        fallback={<Html center><div className="text-white p-2 bg-black/50 rounded">Failed to load base image</div></Html>}
+      >
+        {(texture) => (
+          <Plane texture={texture} isBase position={[0, 0, 0]} />
+        )}
+      </TextureLoader>
       
       {/* Overlay image if available */}
-      {overlayTexture && (
-        <Plane 
-          texture={overlayTexture} 
-          position={positionArray}
-          rotation={rotationArray}
-          scale={overlayScale}
-        />
+      {overlayImage && (
+        <TextureLoader
+          url={overlayImage}
+          fallback={<Html center><div className="text-white p-2 bg-black/50 rounded">Failed to load overlay image</div></Html>}
+        >
+          {(texture) => (
+            <Plane 
+              texture={texture} 
+              position={positionArray}
+              rotation={rotationArray}
+              scale={overlayScale}
+            />
+          )}
+        </TextureLoader>
       )}
       
       {/* Lighting */}

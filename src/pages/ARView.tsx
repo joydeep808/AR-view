@@ -35,6 +35,8 @@ const ARViewPage = () => {
           // Fetch AR experience data from our backend API
           const arExperience = await fetchARExperience(id);
           
+          console.log("Received AR data:", arExperience);
+          
           setArData({
             baseImage: arExperience.baseImage,
             overlayImage: arExperience.overlayImage,
