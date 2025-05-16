@@ -1,14 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { ARProvider } from '@/contexts/ARContext';
 import ARViewer from '@/components/ARViewer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/use-toast';
-import { fetchARExperience } from '@/services/imageService';
+import { fetchARExperience, addCacheBuster } from '@/services/imageService';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
 
 const ARViewPage = () => {
   const { id } = useParams();
@@ -37,12 +36,25 @@ const ARViewPage = () => {
           
           console.log("Received AR data:", arExperience);
           
+          if (!arExperience || !arExperience.baseImage) {
+            throw new Error('Invalid AR data received');
+          }
+          
+          // Add cache busting to image URLs
+          const baseWithCache = addCacheBuster(arExperience.baseImage);
+          const overlayWithCache = addCacheBuster(arExperience.overlayImage);
+          
+          console.log("Processed image URLs:", {
+            base: baseWithCache,
+            overlay: overlayWithCache
+          });
+          
           setArData({
-            baseImage: arExperience.baseImage,
-            overlayImage: arExperience.overlayImage,
-            position: arExperience.position,
-            rotation: arExperience.rotation,
-            scale: arExperience.scale
+            baseImage: baseWithCache,
+            overlayImage: overlayWithCache,
+            position: arExperience.position || { x: 0, y: 0, z: 0 },
+            rotation: arExperience.rotation || { x: 0, y: 0, z: 0 },
+            scale: arExperience.scale || 1
           });
           
           setIsLoading(false);
@@ -78,15 +90,19 @@ const ARViewPage = () => {
             baseImage, overlayImage, position: { x: posX, y: posY, z: posZ }
           });
 
+          // Add cache busters to the image URLs
+          const baseWithCache = addCacheBuster(baseImage);
+          const overlayWithCache = overlayImage ? addCacheBuster(overlayImage) : null;
+
           setArData({
-            baseImage,
-            overlayImage,
+            baseImage: baseWithCache,
+            overlayImage: overlayWithCache,
             position: { x: posX, y: posY, z: posZ },
             rotation: { x: rotX, y: rotY, z: rotZ },
             scale
           });
-          setIsLoading(false);
           
+          setIsLoading(false);
           toast({
             title: "AR Experience Loaded",
             description: "Your AR experience has been loaded using legacy mode.",
@@ -107,6 +123,13 @@ const ARViewPage = () => {
 
     loadARData();
   }, [id, searchParams]);
+
+  const handleRetry = () => {
+    setError(null);
+    setIsLoading(true);
+    // Force reload the current page
+    window.location.reload();
+  };
 
   if (isLoading) {
     return (
@@ -131,11 +154,16 @@ const ARViewPage = () => {
             <div className="text-center p-8">
               <h2 className="text-2xl font-bold text-red-500 mb-4">Error</h2>
               <p>{error}</p>
-              <Link to="/">
-                <Button className="mt-4">
-                  Return to Home
+              <div className="flex justify-center gap-4 mt-4">
+                <Button onClick={handleRetry}>
+                  Retry Loading
                 </Button>
-              </Link>
+                <Link to="/">
+                  <Button variant="outline">
+                    Return to Home
+                  </Button>
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -165,6 +193,10 @@ const ARViewPage = () => {
 
         <div className="grid grid-cols-1 gap-6">
           <ARViewer />
+          <div className="text-center text-sm text-gray-500">
+            <p>Debug info: Base image: {arData.baseImage?.substring(0, 30)}...</p>
+            <p>Overlay image: {arData.overlayImage?.substring(0, 30)}...</p>
+          </div>
         </div>
 
         <div className="mt-8 text-center">

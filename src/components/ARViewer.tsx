@@ -34,34 +34,58 @@ const Plane: React.FC<PlaneProps> = ({
   );
 };
 
-// Create a wrapper component to handle loading textures with error handling
-const TextureLoader: React.FC<{
+// Improved texture loader with better error handling and proxy support
+const TextureLoader = ({ 
+  url, 
+  children, 
+  fallback 
+}: {
   url: string | null;
   children: (texture: THREE.Texture) => React.ReactNode;
   fallback?: React.ReactNode;
-}> = ({ url, children, fallback }) => {
+}) => {
+  const [error, setError] = useState<Error | null>(null);
+  
+  // If no URL provided, show fallback
   if (!url) {
+    console.log("No image URL provided");
     return fallback || null;
   }
+
+  // Process URL to avoid CORS and cache issues
+  let processedUrl = url;
+  
+  // Add cache buster
+  const timestamp = Date.now();
+  processedUrl = url.includes('?') ? 
+    `${url}&t=${timestamp}` : 
+    `${url}?t=${timestamp}`;
+  
+  console.log("Loading texture from URL:", processedUrl);
   
   try {
-    // Add timestamp to URL to break cache
-    const cacheBustUrl = url.includes('?') ? 
-      `${url}&cb=${Date.now()}` : 
-      `${url}?cb=${Date.now()}`;
+    // Use React Three Fiber's useLoader with error handling
+    const texture = useLoader(THREE.TextureLoader, processedUrl);
     
-    const texture = useLoader(THREE.TextureLoader, cacheBustUrl);
-    return <>{children(texture)}</>;
-  } catch (error) {
-    console.error("Failed to load texture:", url, error);
-    return fallback || null;
+    // If texture loaded successfully
+    if (texture) {
+      console.log("Texture loaded successfully:", processedUrl);
+      texture.needsUpdate = true; // Force texture update
+      return <>{children(texture)}</>;
+    } else {
+      console.error("Texture failed to load (undefined texture):", processedUrl);
+      return fallback || null;
+    }
+  } catch (err) {
+    console.error("Error loading texture:", processedUrl, err);
+    return fallback || <Html center><div className="text-white p-2 bg-black/50 rounded">Failed to load image</div></Html>;
   }
 };
 
 const Scene: React.FC = () => {
   const { baseImage, overlayImage, overlayPosition, overlayRotation, overlayScale } = useAR();
   
-  console.log("Rendering Scene with:", { 
+  console.log("Rendering AR Scene with:", { 
     baseImage, 
     overlayImage, 
     overlayPosition, 
