@@ -14,7 +14,7 @@ connectToDatabase();
 
 // Middleware
 app.use(cors({
-  origin: config.frontendUrl,
+  origin: "*",
   credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
