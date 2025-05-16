@@ -35,7 +35,7 @@ const Plane: React.FC<PlaneProps> = ({
   );
 };
 
-// Enhanced texture loader with better error handling for different URL types
+// Enhanced texture loader with better error handling and crossOrigin support
 const TextureLoader = ({ 
   url, 
   children, 
@@ -56,30 +56,22 @@ const TextureLoader = ({
   
   // Handle different URL types
   let processedUrl = url;
-  console.log("Processing texture URL:", url.substring(0, 100) + (url.length > 100 ? '...' : ''));
-  
-  // Don't add timestamp for data URLs
-  if (!isDataUrl(url)) {
-    // Add cache buster for regular URLs
-    const timestamp = Date.now();
-    processedUrl = url.includes('?') ? 
-      `${url}&t=${timestamp}` : 
-      `${url}?t=${timestamp}`;
-  }
+  console.log("Loading texture from URL:", url.substring(0, 100) + (url.length > 100 ? '...' : ''));
   
   try {
-    console.log("Loading texture from URL type:", isDataUrl(url) ? "data:URL" : "regular URL");
-    
-    // Create a texture loader with specific handling for data URLs
-    let texture: THREE.Texture;
+    // Create a texture loader that handles both data URLs and regular URLs
+    const loader = new THREE.TextureLoader();
+    loader.crossOrigin = 'anonymous'; // Enable CORS for all texture loading
     
     if (isDataUrl(url)) {
-      // Handle data URLs using a manual texture creation process
+      // For data URLs, we create a manual texture
       const image = new Image();
-      texture = new THREE.Texture(image);
+      image.crossOrigin = 'anonymous';
+      const texture = new THREE.Texture(image);
       
       image.onload = () => {
         texture.needsUpdate = true;
+        texture.flipY = true; // Ensure proper orientation
         setLoading(false);
       };
       
@@ -106,21 +98,54 @@ const TextureLoader = ({
       // Return the texture when successful
       return <>{children(texture)}</>;
     } else {
-      // Use React Three Fiber's useLoader for regular URLs
-      texture = useLoader(THREE.TextureLoader, processedUrl);
+      // For remote URLs (like Cloudinary), we need to handle loading differently
+      const [texture, setTexture] = useState<THREE.Texture | null>(null);
       
-      // If texture loaded successfully
-      if (texture) {
-        console.log("Texture loaded successfully");
-        texture.needsUpdate = true; // Force texture update
-        return <>{children(texture)}</>;
-      } else {
-        console.error("Texture failed to load (undefined texture)");
+      useEffect(() => {
+        // Add cache busting to URL if not a data URL
+        const timestamp = Date.now();
+        const urlWithCache = url.includes('?') ? 
+          `${url}&t=${timestamp}` : 
+          `${url}?t=${timestamp}`;
+        
+        // Set up the loader with proper CORS settings
+        loader.crossOrigin = 'anonymous';
+        loader.setCrossOrigin('anonymous');
+        
+        // Load the texture
+        loader.load(
+          urlWithCache,
+          (loadedTexture) => {
+            console.log("Texture loaded successfully");
+            loadedTexture.needsUpdate = true;
+            loadedTexture.flipY = true;
+            setTexture(loadedTexture);
+            setLoading(false);
+          },
+          undefined,
+          (err) => {
+            console.error("Error loading texture:", err);
+            setError(err);
+            setLoading(false);
+          }
+        );
+      }, [url]);
+      
+      // Handle different states
+      if (loading) {
+        return <Html center><div className="text-white p-2 bg-black/50 rounded">Loading image...</div></Html>;
+      }
+      
+      if (error || !texture) {
+        console.error("Error loading texture:", error);
         return fallback || <Html center><div className="text-white p-2 bg-black/50 rounded">Failed to load image</div></Html>;
       }
+      
+      // If texture loaded successfully, render it
+      return <>{children(texture)}</>;
     }
   } catch (err) {
-    console.error("Error loading texture:", err);
+    console.error("Error in texture loading process:", err);
     return fallback || <Html center><div className="text-white p-2 bg-black/50 rounded">Failed to load image</div></Html>;
   }
 };

@@ -26,18 +26,35 @@ export const loadImages = () => {
   }
 };
 
-// Add cache busting to URLs - more robust handling for different URL types
-export const addCacheBuster = (url: string | null | undefined): string | null => {
+// Process URLs for better compatibility
+export const processImageUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
   
-  // Don't add cache busting to data URLs
+  // For data URLs, return as is
   if (url.startsWith('data:')) return url;
   
-  const cacheBuster = Date.now();
+  // For Cloudinary URLs, add crossorigin parameters
+  if (url.includes('res.cloudinary.com')) {
+    // Modify Cloudinary URL to enforce HTTPS and add CORS-friendly parameters
+    if (url.startsWith('http:')) {
+      url = 'https:' + url.substring(5);
+    }
+    
+    // Add necessary Cloudinary parameters
+    const timestamp = Date.now();
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${timestamp}&fl_attachment&fl_awebp`;
+  }
+  
+  // Default cache busting for other URLs
+  const timestamp = Date.now();
   return url.includes('?') ? 
-    `${url}&cb=${cacheBuster}` : 
-    `${url}?cb=${cacheBuster}`;
+    `${url}&t=${timestamp}` : 
+    `${url}?t=${timestamp}`;
 };
+
+// Add cache busting to URLs (for backward compatibility)
+export const addCacheBuster = processImageUrl;
 
 // Check if URL is valid
 export const isValidUrl = (url: string | null | undefined): boolean => {
@@ -102,7 +119,7 @@ export const saveARExperience = async (
   }
 };
 
-// Fetch AR experience by id with retries and extended timeout
+// Fetch AR experience by id with better error handling and CORS support
 export const fetchARExperience = async (id: string, retries = 3) => {
   console.log("Fetching AR experience with ID:", id);
   
@@ -119,7 +136,7 @@ export const fetchARExperience = async (id: string, retries = 3) => {
       
       console.log(`Fetch attempt ${attempt + 1} for AR experience`);
       
-      const response = await fetch(addCacheBuster(url) || url, {
+      const response = await fetch(processImageUrl(url) || url, {
         signal: controller.signal,
         cache: 'no-store', // Bypass cache completely
         headers: {
@@ -140,6 +157,15 @@ export const fetchARExperience = async (id: string, retries = 3) => {
       
       if (!data.arData || !data.arData.baseImage) {
         throw new Error('Invalid AR data structure received');
+      }
+      
+      // Process image URLs in the response
+      if (data.arData.baseImage) {
+        data.arData.baseImage = processImageUrl(data.arData.baseImage);
+      }
+      
+      if (data.arData.overlayImage) {
+        data.arData.overlayImage = processImageUrl(data.arData.overlayImage);
       }
       
       return data.arData;

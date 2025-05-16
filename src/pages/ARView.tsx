@@ -6,7 +6,7 @@ import ARViewer from '@/components/ARViewer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/use-toast';
-import { fetchARExperience, addCacheBuster } from '@/services/imageService';
+import { fetchARExperience, processImageUrl } from '@/services/imageService';
 import { Button } from '@/components/ui/button';
 
 const ARViewPage = () => {
@@ -40,9 +40,9 @@ const ARViewPage = () => {
             throw new Error('Invalid AR data received');
           }
           
-          // Add cache busting to image URLs
-          const baseWithCache = addCacheBuster(arExperience.baseImage);
-          const overlayWithCache = addCacheBuster(arExperience.overlayImage);
+          // Process image URLs for better compatibility
+          const baseWithCache = processImageUrl(arExperience.baseImage);
+          const overlayWithCache = processImageUrl(arExperience.overlayImage);
           
           console.log("Processed image URLs:", {
             base: baseWithCache,
